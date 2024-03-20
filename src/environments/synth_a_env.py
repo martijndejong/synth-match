@@ -1,0 +1,1 @@
+# Environment class for synthesizer A

@@ -1,0 +1,1 @@
+# Base synthesizer environment class, defining a common interface
