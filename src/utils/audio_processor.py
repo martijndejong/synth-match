@@ -16,15 +16,17 @@ class AudioProcessor:
         # Process self.audio_sample to extract features
         # Store in self.features or return the features
         f, t, Sxx = signal.spectrogram(self.audio_sample, self.sampling_freq)
-        self.spectrogram = Spectrogram(frequency=f, time=t, magnitude=Sxx)
+        Sxx_dB = 10 * np.log10(Sxx)
+        self.spectrogram = Spectrogram(frequency=f, time=t, spec_dens=Sxx, decibels=Sxx_dB)
 
     def normalize(self):
         # Normalize self.audio_sample
         pass
 
-
+# TODO: Maybe the spec_dens is obsolete, and we could just solely pass the decibels?
 @dataclass
 class Spectrogram:
     frequency: np.ndarray
     time: np.ndarray
-    magnitude: np.ndarray
+    spec_dens: np.ndarray
+    decibels: np.ndarray
