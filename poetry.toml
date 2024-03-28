@@ -1,0 +1,4 @@
+# The poetry.toml file is used for configuration settings, such as where to create virtual environments
+# separate from pyproject.toml, which defines project dependencies and metadata
+[virtualenvs]
+in-project = true
