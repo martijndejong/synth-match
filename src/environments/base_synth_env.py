@@ -1,13 +1,14 @@
 """
 Base synthesizer environment class, defining a common interface
-Adhering to the OpenAI Gym env
+Adhering to the OpenAI Gym env naming conventions for functions
 """
 
 from abc import ABC, abstractmethod
 
 
 class SynthEnv(ABC):
-    def __init__(self):
+    def __init__(self, render_mode=None):
+        self.render_mode = render_mode
         pass  # Initialize shared attributes or configurations
 
     @abstractmethod
@@ -18,7 +19,11 @@ class SynthEnv(ABC):
 
         :return: state
         """
-        pass
+        state = None
+
+        if self.render_mode == "human":
+            self.render()
+        return state
 
     @abstractmethod
     def step(self, action):
@@ -32,4 +37,21 @@ class SynthEnv(ABC):
         reward: A numerical value indicating the reward obtained from taking the action
         done: boolean indicating whether the episode has ended
         """
+        state = None
+        reward = 0.0
+        done = False
+
+        if self.render_mode == "human":
+            self.render()
+        return state, reward, done
+
+    def render(self):
+        """
+        Let's add an optional rendering function that can be turned on/off. This would use, e.g., Matplotlib to
+        visualize (animate) the incoming/outgoing spectrogram/audio waves/setting values/etc.
+        This could be used for debugging or for display of trained network capabilities.
+        """
+        if self.render_mode is None:
+            raise Exception("Render method called without specifying any render mode")
+
         pass

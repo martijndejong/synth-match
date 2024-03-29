@@ -31,3 +31,7 @@ class TimeAmplitudeObserver(BaseObserver):
         for layer in self.dense_layers:
             x = layer(x)
         return x  # Output feature vector from time-amplitude analysis
+
+
+class SomeCombinationOfObservers(BaseObserver):
+    pass
