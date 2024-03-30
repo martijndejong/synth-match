@@ -7,8 +7,9 @@ from abc import ABC, abstractmethod
 
 
 class SynthEnv(ABC):
-    def __init__(self, render_mode=None):
+    def __init__(self, render_mode=None, sample_rate=48000.):
         self.render_mode = render_mode
+        self.sample_rate = sample_rate
         pass  # Initialize shared attributes or configurations
 
     @abstractmethod
