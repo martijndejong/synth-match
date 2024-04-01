@@ -4,7 +4,7 @@ TODO: Design actual 'learning loop' with agent and environment interaction -- cu
 
 from src.agents.actor_critic_agent import ActorCriticAgent
 from src.utils.observers import SpectrogramObserver
-from src.environments.synth_a_env import SynthA
+from src.synthesizers.synth_a import SynthA
 
 # Instantiate the model with observers
 agent = ActorCriticAgent(observer=SpectrogramObserver())
