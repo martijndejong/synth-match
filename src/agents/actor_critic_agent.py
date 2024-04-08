@@ -22,8 +22,7 @@ class ActorCriticAgent(tf.keras.Model):
         self.critic_output = layers.Dense(1, activation='linear')
 
         # Optimizers
-        self.actor_optimizer = optimizers.Adam(learning_rate=1e-4)
-        self.critic_optimizer = optimizers.Adam(learning_rate=1e-3)
+        self.optimizer = optimizers.Adam(learning_rate=1e-4)
 
     def call(self, inputs, training=False, actions=None):
         features = self.observer_network(inputs, training=training)
@@ -47,6 +46,12 @@ class ActorCriticAgent(tf.keras.Model):
     def train_step(self, data):
         states, actions, rewards, next_states, dones = data
 
+        states = tf.convert_to_tensor(states, dtype=tf.float32)
+        actions = tf.convert_to_tensor(actions, dtype=tf.float32)
+        rewards = tf.convert_to_tensor(rewards, dtype=tf.float32)
+        next_states = tf.convert_to_tensor(next_states, dtype=tf.float32)
+        dones = tf.convert_to_tensor(dones, dtype=tf.float32)
+
         with tf.GradientTape(persistent=True) as tape:
             # Forward pass for current states and actual actions
             _, critic_values = self(states, training=True, actions=actions)
@@ -66,12 +71,11 @@ class ActorCriticAgent(tf.keras.Model):
             critic_values_for_actor_loss = tf.squeeze(critic_values_for_actor_loss, axis=1)
             actor_loss = -tf.reduce_mean(critic_values_for_actor_loss)
 
-        # Compute gradients and apply updates
-        critic_grad = tape.gradient(critic_loss, self.critic.trainable_variables)
-        self.critic_optimizer.apply_gradients(zip(critic_grad, self.critic.trainable_variables))
+        # Compute gradients for the entire model
+        gradients = tape.gradient(critic_loss + actor_loss, self.trainable_variables)
 
-        actor_grad = tape.gradient(actor_loss, self.actor.trainable_variables)
-        self.actor_optimizer.apply_gradients(zip(actor_grad, self.actor.trainable_variables))
+        # Apply gradients to the entire model
+        self.optimizer.apply_gradients(zip(gradients, self.trainable_variables))
 
         del tape  # Free tape memory
 
