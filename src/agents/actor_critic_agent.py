@@ -1,7 +1,6 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
 
-
 class ActorCriticAgent(tf.keras.Model):
     def __init__(self, observer_network, action_dim, hidden_dim=256, gamma=0.99):
         super(ActorCriticAgent, self).__init__()
@@ -13,15 +12,19 @@ class ActorCriticAgent(tf.keras.Model):
         # Ensure observer network's weights are trainable within the ActorCriticAgent
         self.observer_network.trainable = True
 
-        # Actor network
-        self.actor_dense1 = layers.Dense(hidden_dim, activation='relu')
-        self.actor_dense2 = layers.Dense(hidden_dim, activation='relu')
-        self.actor_output = layers.Dense(action_dim, activation='tanh')  # For continuous actions
+        # Actor sub-model
+        self.actor = models.Sequential([
+            layers.Dense(hidden_dim, activation='relu'),
+            layers.Dense(hidden_dim, activation='relu'),
+            layers.Dense(action_dim, activation='tanh')  # For continuous actions
+        ], name='actor')
 
-        # Critic network
-        self.critic_dense1 = layers.Dense(hidden_dim, activation='relu')
-        self.critic_dense2 = layers.Dense(hidden_dim, activation='relu')
-        self.critic_output = layers.Dense(1, activation='linear')
+        # Critic sub-model
+        self.critic = models.Sequential([
+            layers.Dense(hidden_dim, activation='relu'),
+            layers.Dense(hidden_dim, activation='relu'),
+            layers.Dense(1, activation='linear')
+        ], name='critic')
 
         # Optimizers
         self.actor_optimizer = optimizers.Adam(learning_rate=1e-4)
@@ -30,18 +33,16 @@ class ActorCriticAgent(tf.keras.Model):
     def call(self, inputs, training=False, action=None):
         features = self.observer_network(inputs, training=training)
 
-        # Actor
-        x_actor = self.actor_dense1(features)
-        x_actor = self.actor_dense2(x_actor)
-        actor_output = self.actor_output(x_actor)
+        # Actor forward pass
+        actor_output = self.actor(features)
 
         # Critic
         # Use provided action if available, otherwise use the actor's output
         action_to_use = action if action is not None else actor_output
         critic_input = tf.concat([features, action_to_use], axis=-1)
-        x_critic = self.critic_dense1(critic_input)
-        x_critic = self.critic_dense2(x_critic)
-        critic_output = self.critic_output(x_critic)
+
+        # Critic forward pass
+        critic_output = self.critic(critic_input)
 
         return actor_output, critic_output
 
@@ -76,16 +77,12 @@ class ActorCriticAgent(tf.keras.Model):
             critic_values_for_actor_loss = tf.squeeze(critic_values_for_actor_loss, axis=1)
             actor_loss = -tf.reduce_mean(critic_values_for_actor_loss)
 
-        # Compute gradients and apply updates
-        critic_grad = tape.gradient(critic_loss,
-                                    self.critic_dense1.trainable_variables + self.critic_dense2.trainable_variables + self.critic_output.trainable_variables)
-        self.critic_optimizer.apply_gradients(zip(critic_grad,
-                                                  self.critic_dense1.trainable_variables + self.critic_dense2.trainable_variables + self.critic_output.trainable_variables))
+        # Compute gradients and apply updates for actor and critic separately
+        critic_grad = tape.gradient(critic_loss, self.critic.trainable_variables)
+        self.critic_optimizer.apply_gradients(zip(critic_grad, self.critic.trainable_variables))
 
-        actor_grad = tape.gradient(actor_loss,
-                                   self.actor_dense1.trainable_variables + self.actor_dense2.trainable_variables + self.actor_output.trainable_variables)
-        self.actor_optimizer.apply_gradients(zip(actor_grad,
-                                                 self.actor_dense1.trainable_variables + self.actor_dense2.trainable_variables + self.actor_output.trainable_variables))
+        actor_grad = tape.gradient(actor_loss, self.actor.trainable_variables)
+        self.actor_optimizer.apply_gradients(zip(actor_grad, self.actor.trainable_variables))
 
         del tape  # Free tape memory
 
