@@ -1,5 +1,5 @@
 # Environment class for synthesizer A
-from base_synth import Synthesizer
+from _base_synth import Synthesizer
 
 
 class SynthA(Synthesizer):
