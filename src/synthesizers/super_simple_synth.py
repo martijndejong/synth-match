@@ -1,37 +1,69 @@
-from src.synthesizers.base_synth import Synthesizer
-from dataclasses import dataclass
+from src.synthesizers._base_synth import Synthesizer
+from src.utils.math import linear_interp
 import numpy as np
-
+# from dataclasses import dataclass, fields
 
 class SuperSimpleSynth(Synthesizer):
     def __init__(self, sample_rate=48000.):
         super().__init__(sample_rate)
-        self.SP = SynthParameters(
-            amp=2 * np.sqrt(2),
-            mod_freq=2,
-            mod_amp=500
-        )
+        # self.SP = SynthParameters(
+        #     amp=2 * np.sqrt(2),
+        #     mod_freq=2,
+        #     mod_amp=500
+        # )
+
+        self.param_names = [
+            "amp",
+            "mod_freq",
+            "mod_amp"
+        ]
+
+        self.param_values = [
+            0.5,
+            0.5,
+            0.5
+        ]
+
+        self.param_range = [
+            (0.0, 5 * np.sqrt(2)),
+            (0.0, 10.0),
+            (0.0, 1000.0)
+        ]
 
     def play_note(self, note, duration):
         # Convert note to frequency
         freq = _note_to_freq(note)
 
+        # FIXME: not the nicest way to explicitly update each parameter here each time
+        #   but this synth is for testing only anyway
+        amp_range = self.param_range[0]
+        amp = linear_interp(amp_range[0], amp_range[1], self.param_values[0])
+
+        mod_freq_range = self.param_range[1]
+        mod_freq = linear_interp(mod_freq_range[0], mod_freq_range[1], self.param_values[1])
+
+        mod_amp_range = self.param_range[2]
+        mod_amp = linear_interp(mod_amp_range[0], mod_amp_range[1], self.param_values[2])
+
         # Generate array of time points
         t = np.linspace(0, duration, int(self.sample_rate * duration), endpoint=False)
 
         # Generate sound wave
-        modulator = self.SP.mod_amp * np.sin(2 * np.pi * self.SP.mod_freq * t)
-        sound = self.SP.amp * np.sin(2 * np.pi * freq * t + modulator)
+        modulator = mod_amp * np.sin(2 * np.pi * mod_freq * t)
+        sound = amp * np.sin(2 * np.pi * freq * t + modulator)
 
         return sound
 
-    def get_parameters(self):
-        return np.array([self.SP.amp, self.SP.mod_freq, self.SP.mod_amp])
+    def get_param_value(self, index: int) -> float:
+        return self.param_values[index]
 
-    def set_parameters(self, parameters):
-        self.SP.amp = parameters[0]
-        self.SP.mod_freq = parameters[1]
-        self.SP.mod_amp = parameters[2]
+    def set_param_value(self, index: int, value: float) -> None:
+        self.param_values[index] = value
+        return
+
+    @property
+    def num_params(self):
+        return len(self.param_values)
 
 
 def _note_to_freq(note):
@@ -57,8 +89,8 @@ def _note_to_freq(note):
     return frequency
 
 
-@dataclass
-class SynthParameters:
-    amp: float
-    mod_freq: float
-    mod_amp: float
+# @dataclass
+# class SynthParameters:
+#     amp: float
+#     mod_freq: float
+#     mod_amp: float

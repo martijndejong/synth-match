@@ -8,7 +8,7 @@ import numpy as np
 
 
 class Synthesizer(ABC):
-    def __init__(self, sample_rate=48000.):
+    def __init__(self, sample_rate=44100.):
         self.sample_rate = sample_rate
         pass  # Initialize shared attributes or configurations
 
@@ -23,18 +23,28 @@ class Synthesizer(ABC):
         pass
 
     @abstractmethod
-    def get_parameters(self) -> np.ndarray:
+    def get_param_value(self, index: int) -> float:
         """
-        Get the current synthesizer parameters.
-        :return: numpy array with synthesizer parameters
+        Get the current synthesizer parameter value at index.
+        :return: float value of parameter
         """
         pass
 
     @abstractmethod
-    def set_parameters(self, parameters: np.ndarray) -> None:
+    def set_param_value(self, index: int, value: float) -> None:
         """
-        Set the synthesizer parameters.
-        :param parameters: input numpy array with synthesizer settings.
+        Set synthesizer parameter at specified index.
+        :param index: integer index of parameter to set
+        :param value: float value to set parameter to
         :return: None
+        """
+        pass
+
+    @property
+    @abstractmethod
+    def num_params(self):
+        """
+        Get the number of parameters the synthesizer has
+        :return: integer value representing number of parameters
         """
         pass

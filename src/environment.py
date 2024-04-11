@@ -4,14 +4,22 @@ Adhering to the OpenAI Gym env naming conventions for functions
 """
 
 import numpy as np
+from src.utils.reward_functions import calculate_mse_similarity, time_penalty
 
 
 class Environment:
-    def __init__(self, synthesizer=None, control_mode="absolute", render_mode=None):
+    def __init__(self, synthesizer=None, control_mode="absolute", render_mode=None, note_length=1.0):
         self.synthesizer = synthesizer
         self.control_mode = control_mode
         self.render_mode = render_mode
-        pass  # Initialize shared attributes or configurations
+        self.note_length = note_length
+        self.step_count = 0
+        self.target_sound = None
+        self.current_sound = None
+
+        # TODO: is it bad practice to automatically call reset() on init?
+        # reset environment to prevent NoneType error when reset() is not explicitly called by user before step()
+        self.reset()
 
     def reset(self):
         """
@@ -20,14 +28,11 @@ class Environment:
 
         :return: state
         """
-        param_len = len(self.synthesizer.get_parameters())
-        # TODO: EACH PARAMETER SHOULD HAVE ITS OWN BOUNDS, THESE SHOULD BE USED TO GENERATE SENSIBLE RANDOM PARAM VALUES
-        #   THESE BOUNDS WILL ALSO BE IMPORTANT FOR THE AGENT TO KNOW
-        random_params = np.random.uniform(low=0.0, high=1.0, size=param_len)
+        self.step_count = 0
+        self.target_sound = self.play_sound_random_params()
+        self.current_sound = self.play_sound_random_params()
 
-        self.synthesizer.set_parameters(parameters=random_params)
-
-        state = self.synthesizer.play_note(note='C4', duration=2.0)  # FIXME: SHOULD DURATION BE AN ENV INIT PARAM?
+        state = self.calculate_state()
 
         if self.render_mode == "human":
             self.render()
@@ -45,21 +50,28 @@ class Environment:
         done: boolean indicating whether the episode has ended
         """
 
-        # TODO: SHOULD THE CONTROL MODE 'ABSOLUTE' VS 'INCREMENTAL' BE PART OF THE AGENT, OR OF THE ENVIRONMENT?
+        # Environment is either controlled by incremental changes to synth parameters, or by directly setting them
         if self.control_mode == "incremental":
-            current_params = self.synthesizer.get_parameters()
+            current_params = self.get_synth_params()
             new_params = current_params + action
-            self.synthesizer.set_parameters(new_params)
+            self.set_synth_params(new_params)
 
         elif self.control_mode == "absolute":
-            self.synthesizer.set_parameters(action)
+            self.set_synth_params(action)
 
         else:
             raise ValueError("control_mode must be either 'incremental' or 'absolute'")
 
-        state = self.synthesizer.play_note(note='C8', duration=2.0)  # FIXME: SHOULD DURATION BE AN ENV INIT PARAM?
-        reward = 0
-        done = False
+        self.step_count += 1
+
+        self.current_sound = self.synthesizer.play_note(note='C4', duration=self.note_length)
+
+        state = self.calculate_state()
+        reward = self.reward_function()
+        done = self.check_if_done()
+
+        if done:
+            print(f"DEBUG FINAL PARAMS:{self.get_synth_params()}")
 
         if self.render_mode == "human":
             self.render()
@@ -73,6 +85,65 @@ class Environment:
         The render function could also turn on/off audio playback
         """
         if self.render_mode is None:
-            raise Exception("Render method called without specifying any render mode")
+            raise Exception("Render method called without specifying any render mode.")
 
         pass
+
+    def get_num_params(self):
+        if self.synthesizer is None:
+            raise Exception("get_num_params is called without loading a synthesizer.")
+
+        return self.synthesizer.num_params
+
+    def set_synth_params(self, parameters: np.ndarray):
+        """
+        Iteratively set all synth parameter values
+        :param parameters: list of synthesizer parameter values
+        :return:
+        """
+        for index, value in enumerate(parameters):
+            self.synthesizer.set_param_value(index, value)
+        return
+
+    def get_synth_params(self) -> np.ndarray:
+        """
+        Iterate over all the synth parameters to get their current value
+        :return: list of current synthesizer parameter values
+        """
+        return np.array([self.synthesizer.get_param_value(i) for i in range(self.synthesizer.num_params)])
+
+    def play_sound_random_params(self):
+        # Randomize parameters and play a sound
+        param_len = self.get_num_params()
+        random_params = np.random.uniform(low=0.0, high=1.0, size=param_len)
+        print(f"DEBUG: PARAMETERS: {random_params}")
+        self.set_synth_params(parameters=random_params)
+
+        return self.synthesizer.play_note(note='C4', duration=self.note_length)
+
+    def calculate_state(self):
+        # FIXME: PLACEHOLDER CODE -- idea: have a state definition, instead of just returning the current sound
+        return self.target_sound - self.current_sound
+
+    def reward_function(self):
+        similarity_score = calculate_mse_similarity(
+            current_sample=self.current_sound,
+            target_sample=self.target_sound
+        )
+        penalty = time_penalty(step_count=self.step_count, beta=0.05)
+
+        reward = similarity_score - penalty
+        print(f"Step: {self.step_count}")
+        print(f"Sim score: {similarity_score}, penalty: {penalty}, reward: {reward}")
+
+        return reward
+
+    def check_if_done(self):
+        similarity_score = calculate_mse_similarity(current_sample=self.current_sound, target_sample=self.target_sound)
+        if similarity_score >= 0.99 or similarity_score <= 1e-5:
+            return True
+
+        if self.step_count > 100:
+            return True
+
+        return False
