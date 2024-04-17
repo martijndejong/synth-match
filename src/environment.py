@@ -5,6 +5,7 @@ Adhering to the OpenAI Gym env naming conventions for functions
 
 import numpy as np
 from src.utils.reward_functions import calculate_mse_similarity, time_penalty
+from src.utils.audio_processor import AudioProcessor
 
 
 class Environment:
@@ -49,7 +50,7 @@ class Environment:
         reward: A numerical value indicating the reward obtained from taking the action
         done: boolean indicating whether the episode has ended
         """
-
+        print(f"DEBUG ACTIONS: {action}")
         # Environment is either controlled by incremental changes to synth parameters, or by directly setting them
         if self.control_mode == "incremental":
             current_params = self.get_synth_params()
@@ -123,16 +124,22 @@ class Environment:
 
     def calculate_state(self):
         # FIXME: PLACEHOLDER CODE -- idea: have a state definition, instead of just returning the current sound
-        return self.target_sound - self.current_sound
+        target_audio = AudioProcessor(audio_sample=self.target_sound, sampling_freq=44100.0).calculate_spectrogram()
+        current_audio = AudioProcessor(audio_sample=self.current_sound, sampling_freq=44100.0).calculate_spectrogram()
+        return np.expand_dims(target_audio - current_audio, axis=-1)
 
     def reward_function(self):
+        # FIXME: PLACEHOLDER CODE -- properly pass audio processor object between functions and classes
+        #   maybe instantiate self.target- and self.current_audio and update the sample on note play, instead of new obj
+        target_audio = AudioProcessor(audio_sample=self.target_sound, sampling_freq=44100.0).calculate_spectrogram()
+        current_audio = AudioProcessor(audio_sample=self.current_sound, sampling_freq=44100.0).calculate_spectrogram()
         similarity_score = calculate_mse_similarity(
-            current_sample=self.current_sound,
-            target_sample=self.target_sound
+            current_sample=current_audio,
+            target_sample=target_audio
         )
         penalty = time_penalty(step_count=self.step_count, beta=0.05)
 
-        reward = similarity_score - penalty
+        reward = similarity_score  # - penalty
         print(f"Step: {self.step_count}")
         print(f"Sim score: {similarity_score}, penalty: {penalty}, reward: {reward}")
 
@@ -140,7 +147,7 @@ class Environment:
 
     def check_if_done(self):
         similarity_score = calculate_mse_similarity(current_sample=self.current_sound, target_sample=self.target_sound)
-        if similarity_score >= 0.99 or similarity_score <= 1e-5:
+        if similarity_score >= 0.99:  # or similarity_score <= 1e-5:
             return True
 
         if self.step_count > 100:

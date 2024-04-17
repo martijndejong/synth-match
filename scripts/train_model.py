@@ -3,11 +3,14 @@ from src.environment import Environment
 from src.synthesizers.super_simple_synth import SuperSimpleSynth
 
 # Import observer and actor network
-from src.observers.waveform_observer import build_waveform_observer
+from src.observers.spectrogram_observer import build_spectrogram_observer
 from src.agents.actor_critic_agent import ActorCriticAgent
 
 from src.utils.replay_buffer import ReplayBuffer
 import numpy as np
+
+# TODO: this import should be removed when no longer needed for temp code
+from src.utils.audio_processor import AudioProcessor
 
 # Set constants
 SAMPLING_RATE = 44100.0
@@ -23,9 +26,19 @@ action_dim = env.get_num_params()
 hidden_dim = 256  # Can be adjusted
 gamma = 0.99  # Discount factor for future rewards
 
+# TODO: @Job van Zijl, mss dit:?
+# env.get_input_shape()
+# env.get_output_shape()
+
 # Create Observer network and Actor Critic agent network
-observer_network = build_waveform_observer(
-    input_shape=(int(SAMPLING_RATE*NOTE_LENGTH), 1)
+# TODO: Create systematic way of retrieving the input shape nicely, so that it is plug and play
+random_spectrogram = AudioProcessor(
+    audio_sample=env.play_sound_random_params(),
+    sampling_freq=SAMPLING_RATE
+).calculate_spectrogram()
+random_spectrogram = np.expand_dims(random_spectrogram, axis=-1)
+observer_network = build_spectrogram_observer(
+    input_shape=random_spectrogram.shape  # (int(SAMPLING_RATE*NOTE_LENGTH), 1)
 )
 model = ActorCriticAgent(
     observer_network=observer_network,
