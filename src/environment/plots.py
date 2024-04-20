@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 
 def initialize_plots(rows, cols, figsize=(12, 8)):
@@ -13,6 +14,14 @@ def initialize_plots(rows, cols, figsize=(12, 8)):
 def plot_spectrogram(ax, spectrogram, title, cmap='magma'):
     """Plot a spectrogram on a given axes."""
     ax.imshow(spectrogram, aspect='auto', origin='lower', cmap=cmap)
+    ax.set_title(title)
+
+
+def plot_spectrogram_multichannel(ax, spectrogram, title):
+    """Plot a multichannel spectrogram on a given axes."""
+    # Pad the third dimension with zeros to extend (x, y, 2) to (x, y, 3)
+    spectrogram_rgb = np.pad(spectrogram, ((0, 0), (0, 0), (0, 1)), 'constant', constant_values=(0,))
+    ax.imshow(spectrogram_rgb, aspect='auto', origin='lower')
     ax.set_title(title)
 
 
@@ -40,6 +49,6 @@ def update_plots(axes, target_spectrogram, current_spectrogram, state_spectrogra
     plot_spectrogram(axes[0], target_spectrogram, "Target Audio Spectrogram")
     plot_text(axes[1], param_names, current_params, target_params, reward, total_reward, episode, step)
     plot_spectrogram(axes[2], current_spectrogram, "Current Synth Audio Spectrogram")
-    plot_spectrogram(axes[3], state_spectrogram, "Observed State Spectrogram")
+    plot_spectrogram_multichannel(axes[3], state_spectrogram, "Observed State Spectrogram")
     plt.draw()
     plt.pause(0.1)
