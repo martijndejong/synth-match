@@ -13,19 +13,19 @@ class SuperSimpleSynth(Synthesizer):
         # )
 
         self.param_names = [
-            "amp",
+            # "amp",
             "mod_freq",
             "mod_amp"
         ]
 
         self.param_values = [
-            0.5,
+            # 0.5,
             0.5,
             0.5
         ]
 
         self.param_range = [
-            (0.0, 5 * np.sqrt(2)),
+            # (0.0, 5 * np.sqrt(2)),
             (0.0, 10.0),
             (0.0, 1000.0)
         ]
@@ -36,17 +36,20 @@ class SuperSimpleSynth(Synthesizer):
 
         # FIXME: not the nicest way to explicitly update each parameter here each time
         #   but this synth is for testing only anyway
-        amp_range = self.param_range[0]
-        amp = linear_interp(amp_range[0], amp_range[1], self.param_values[0])
+        # amp_range = self.param_range[0]
+        # amp = linear_interp(amp_range[0], amp_range[1], self.param_values[0])
 
-        mod_freq_range = self.param_range[1]
-        mod_freq = linear_interp(mod_freq_range[0], mod_freq_range[1], self.param_values[1])
+        mod_freq_range = self.param_range[0]
+        mod_freq = linear_interp(mod_freq_range[0], mod_freq_range[1], self.param_values[0])
 
-        mod_amp_range = self.param_range[2]
-        mod_amp = linear_interp(mod_amp_range[0], mod_amp_range[1], self.param_values[2])
+        mod_amp_range = self.param_range[1]
+        mod_amp = linear_interp(mod_amp_range[0], mod_amp_range[1], self.param_values[1])
 
         # Generate array of time points
         t = np.linspace(0, duration, int(self.sample_rate * duration), endpoint=False)
+
+        # FIXME: hardcoded amp value to ignore it as tunable parameter
+        amp = 2 * np.sqrt(2)
 
         # Generate sound wave
         modulator = mod_amp * np.sin(2 * np.pi * mod_freq * t)
@@ -61,7 +64,7 @@ class SuperSimpleSynth(Synthesizer):
         return self.param_names[index]
 
     def set_param_value(self, index: int, value: float) -> None:
-        self.param_values[index] = value
+        self.param_values[index] = max(0.0, min(1.0, value))  # value bounds [0.0, 1.0]
         return
 
     @property

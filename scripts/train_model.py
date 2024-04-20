@@ -37,7 +37,7 @@ random_spectrogram = AudioProcessor(
     audio_sample=random_audio,
     sampling_freq=SAMPLING_RATE
 ).calculate_spectrogram()
-random_spectrogram = np.expand_dims(random_spectrogram, axis=-1)
+random_spectrogram = np.stack((random_spectrogram,random_spectrogram), axis=-1)
 observer_network = build_spectrogram_observer(
     input_shape=random_spectrogram.shape  # (int(SAMPLING_RATE*NOTE_LENGTH), 1)
 )
