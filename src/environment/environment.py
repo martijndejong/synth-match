@@ -4,7 +4,7 @@ Adhering to the OpenAI Gym env naming conventions for functions
 """
 
 import numpy as np
-from src.environment.reward_functions import calculate_mse_similarity, time_penalty
+from src.environment.reward_functions import rmse_similarity, time_cost, action_cost
 from src.utils.audio_processor import AudioProcessor
 from src.environment.plots import initialize_plots, update_plots
 
@@ -21,10 +21,13 @@ class Environment:
         self.last_reward = 0
         self.total_reward = 0
 
+        self.last_action = None
         self.state = None
         self.target_sound = None
         self.target_params = None
         self.current_sound = None
+        self.current_params = None
+        self.previous_params = None
         self.param_names = self.get_synth_param_names()
 
         # Create empty figure for render function
@@ -42,7 +45,7 @@ class Environment:
         self.step_count = 0
         self.total_reward = 0
         self.target_sound, self.target_params = self.play_sound_random_params()
-        self.current_sound, _ = self.play_sound_random_params()
+        self.current_sound, self.current_params = self.play_sound_random_params()
 
         state = self.calculate_state()
 
@@ -60,10 +63,11 @@ class Environment:
         done: boolean indicating whether the episode has ended
         """
         print(f"DEBUG ACTIONS: {action}")
+        self.last_action = action
         # Environment is either controlled by incremental changes to synth parameters, or by directly setting them
+        self.previous_params = self.get_synth_params()  # store synth params before taking step
         if self.control_mode == "incremental":
-            current_params = self.get_synth_params()
-            new_params = current_params + action
+            new_params = self.previous_params + action
             self.set_synth_params(new_params)
 
         elif self.control_mode == "absolute":
@@ -71,6 +75,7 @@ class Environment:
 
         else:
             raise ValueError("control_mode must be either 'incremental' or 'absolute'")
+        self.current_params = self.get_synth_params()  # store synth params after taking step
 
         self.step_count += 1
 
@@ -112,7 +117,7 @@ class Environment:
                                                sampling_freq=44100.0).calculate_spectrogram(),
             state_spectrogram=self.state,
             param_names=self.param_names,
-            current_params=self.get_synth_params(),
+            current_params=self.current_params,
             target_params=self.target_params,
             reward=self.last_reward,
             total_reward=self.total_reward,
@@ -154,7 +159,6 @@ class Environment:
         # Randomize parameters and play a sound
         param_len = self.get_num_params()
         random_params = np.random.uniform(low=0.0, high=1.0, size=param_len)
-        print(f"DEBUG: PARAMETERS: {random_params}")
         self.set_synth_params(parameters=random_params)
 
         return self.synthesizer.play_note(note='C4', duration=self.note_length), random_params
@@ -163,27 +167,29 @@ class Environment:
         # FIXME: PLACEHOLDER CODE -- idea: have a state definition, instead of just returning the current sound
         target_audio = AudioProcessor(audio_sample=self.target_sound, sampling_freq=44100.0).calculate_spectrogram()
         current_audio = AudioProcessor(audio_sample=self.current_sound, sampling_freq=44100.0).calculate_spectrogram()
-        return np.expand_dims(target_audio - current_audio, axis=-1)
+        # return np.expand_dims(target_audio - current_audio, axis=-1)
+        return np.stack((current_audio, target_audio), axis=-1)
 
     def reward_function(self):
         # FIXME: PLACEHOLDER CODE -- properly pass audio processor object between functions and classes
         #   maybe instantiate self.target- and self.current_audio and update the sample on note play, instead of new obj
         target_audio = AudioProcessor(audio_sample=self.target_sound, sampling_freq=44100.0).calculate_spectrogram()
         current_audio = AudioProcessor(audio_sample=self.current_sound, sampling_freq=44100.0).calculate_spectrogram()
-        similarity_score = calculate_mse_similarity(
-            current_sample=current_audio,
-            target_sample=target_audio
-        )
-        penalty = time_penalty(step_count=self.step_count, beta=0.05)
 
-        reward = similarity_score  # - penalty
-        print(f"Step: {self.step_count}")
-        print(f"Sim score: {similarity_score}, penalty: {penalty}, reward: {reward}")
+        similarity_score = rmse_similarity(current_sample=current_audio, target_sample=target_audio)
+        time_penalty = time_cost(step_count=self.step_count, factor=0.01)
+        action_penalty = action_cost(
+            action=self.last_action,
+            factor=10.0
+        )
+
+        reward = similarity_score - time_penalty - action_penalty
+        print(f"DEBUG REWARD: {reward:.3f} = {similarity_score:.3f} - {time_penalty:.3f} - {action_penalty:.3f}")
 
         return reward
 
     def check_if_done(self):
-        similarity_score = calculate_mse_similarity(current_sample=self.current_sound, target_sample=self.target_sound)
+        similarity_score = rmse_similarity(current_sample=self.current_sound, target_sample=self.target_sound)
         if similarity_score >= 0.99:  # or similarity_score <= 1e-5:
             return True
 
