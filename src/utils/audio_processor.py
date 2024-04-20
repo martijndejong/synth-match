@@ -31,4 +31,5 @@ class AudioProcessor:
         self.spectrogram = S_db_mel
 
         # FIXME: RETURN SPECTOGRAM? OR KEEP IT AS CLASS ATTRIBUTE THAT IS FILLED?
-        return S_db_mel
+        #   PLUS MAKE NORMALIZATION MORE CONTROLLED INSTEAD OF HARDCODED IN RETURN HERE
+        return (S_db_mel + 80)/80
