@@ -1,5 +1,5 @@
 # Import environment and synthesizer
-from src.environment import Environment
+from src.environment.environment import Environment
 from src.synthesizers.super_simple_synth import SuperSimpleSynth
 
 # Import observer and actor network
