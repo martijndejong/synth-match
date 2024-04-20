@@ -4,8 +4,9 @@ Adhering to the OpenAI Gym env naming conventions for functions
 """
 
 import numpy as np
-from src.utils.reward_functions import calculate_mse_similarity, time_penalty
+from src.environment.reward_functions import calculate_mse_similarity, time_penalty
 from src.utils.audio_processor import AudioProcessor
+from src.environment.plots import initialize_plots, update_plots
 
 
 class Environment:
@@ -14,13 +15,21 @@ class Environment:
         self.control_mode = control_mode
         self.render_mode = render_mode
         self.note_length = note_length
-        self.step_count = 0
-        self.target_sound = None
-        self.current_sound = None
 
-        # TODO: is it bad practice to automatically call reset() on init?
-        # reset environment to prevent NoneType error when reset() is not explicitly called by user before step()
-        self.reset()
+        self.episode = 0
+        self.step_count = 0
+        self.last_reward = 0
+        self.total_reward = 0
+
+        self.state = None
+        self.target_sound = None
+        self.target_params = None
+        self.current_sound = None
+        self.param_names = self.get_synth_param_names()
+
+        # Create empty figure for render function
+        if render_mode:
+            self.fig, self.axes = initialize_plots(rows=2, cols=2)
 
     def reset(self):
         """
@@ -29,14 +38,14 @@ class Environment:
 
         :return: state
         """
+        self.episode += 1
         self.step_count = 0
-        self.target_sound = self.play_sound_random_params()
-        self.current_sound = self.play_sound_random_params()
+        self.total_reward = 0
+        self.target_sound, self.target_params = self.play_sound_random_params()
+        self.current_sound, _ = self.play_sound_random_params()
 
         state = self.calculate_state()
 
-        if self.render_mode == "human":
-            self.render()
         return state
 
     def step(self, action):
@@ -67,14 +76,20 @@ class Environment:
 
         self.current_sound = self.synthesizer.play_note(note='C4', duration=self.note_length)
 
+        # Update state, reward, and done, after step
         state = self.calculate_state()
         reward = self.reward_function()
         done = self.check_if_done()
 
+        # Set environment attributes
+        self.state = state
+        self.last_reward = reward
+        self.total_reward += reward
+
         if done:
             print(f"DEBUG FINAL PARAMS:{self.get_synth_params()}")
 
-        if self.render_mode == "human":
+        if self.render_mode:
             self.render()
         return state, reward, done
 
@@ -88,7 +103,22 @@ class Environment:
         if self.render_mode is None:
             raise Exception("Render method called without specifying any render mode.")
 
-        pass
+        # FIXME: can the update plot function only take 'environment' as input, and then pass environment=self?
+        update_plots(
+            axes=self.axes,
+            target_spectrogram=AudioProcessor(audio_sample=self.target_sound,
+                                              sampling_freq=44100.0).calculate_spectrogram(),
+            current_spectrogram=AudioProcessor(audio_sample=self.current_sound,
+                                               sampling_freq=44100.0).calculate_spectrogram(),
+            state_spectrogram=self.state,
+            param_names=self.param_names,
+            current_params=self.get_synth_params(),
+            target_params=self.target_params,
+            reward=self.last_reward,
+            total_reward=self.total_reward,
+            episode=self.episode,
+            step=self.step_count
+        )
 
     def get_num_params(self):
         if self.synthesizer is None:
@@ -113,6 +143,13 @@ class Environment:
         """
         return np.array([self.synthesizer.get_param_value(i) for i in range(self.synthesizer.num_params)])
 
+    def get_synth_param_names(self) -> list[str]:
+        """
+        Iterate over all the synth parameters to get their names
+        :return: list of synthesizer parameter names
+        """
+        return [self.synthesizer.get_param_name(i) for i in range(self.synthesizer.num_params)]
+
     def play_sound_random_params(self):
         # Randomize parameters and play a sound
         param_len = self.get_num_params()
@@ -120,7 +157,7 @@ class Environment:
         print(f"DEBUG: PARAMETERS: {random_params}")
         self.set_synth_params(parameters=random_params)
 
-        return self.synthesizer.play_note(note='C4', duration=self.note_length)
+        return self.synthesizer.play_note(note='C4', duration=self.note_length), random_params
 
     def calculate_state(self):
         # FIXME: PLACEHOLDER CODE -- idea: have a state definition, instead of just returning the current sound
