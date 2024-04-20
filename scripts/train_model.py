@@ -1,5 +1,5 @@
 # Import environment and synthesizer
-from src.environment import Environment
+from src.environment.environment import Environment
 from src.synthesizers.super_simple_synth import SuperSimpleSynth
 
 # Import observer and actor network
@@ -20,7 +20,7 @@ NOTE_LENGTH = 0.5
 synth = SuperSimpleSynth(sample_rate=SAMPLING_RATE)
 
 # Create environment object and pass synthesizer object
-env = Environment(synthesizer=synth, note_length=NOTE_LENGTH, control_mode="incremental")
+env = Environment(synthesizer=synth, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=True)
 
 action_dim = env.get_num_params()
 hidden_dim = 256  # Can be adjusted
@@ -32,8 +32,9 @@ gamma = 0.99  # Discount factor for future rewards
 
 # Create Observer network and Actor Critic agent network
 # TODO: Create systematic way of retrieving the input shape nicely, so that it is plug and play
+random_audio, _ = env.play_sound_random_params()
 random_spectrogram = AudioProcessor(
-    audio_sample=env.play_sound_random_params(),
+    audio_sample=random_audio,
     sampling_freq=SAMPLING_RATE
 ).calculate_spectrogram()
 random_spectrogram = np.expand_dims(random_spectrogram, axis=-1)

@@ -31,6 +31,14 @@ class Synthesizer(ABC):
         pass
 
     @abstractmethod
+    def get_param_name(self, index: int) -> str:
+        """
+        Get the current synthesizer parameter name at index.
+        :return: string name of parameter
+        """
+        pass
+
+    @abstractmethod
     def set_param_value(self, index: int, value: float) -> None:
         """
         Set synthesizer parameter at specified index.

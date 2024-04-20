@@ -57,6 +57,9 @@ class SuperSimpleSynth(Synthesizer):
     def get_param_value(self, index: int) -> float:
         return self.param_values[index]
 
+    def get_param_name(self, index: int) -> str:
+        return self.param_names[index]
+
     def set_param_value(self, index: int, value: float) -> None:
         self.param_values[index] = value
         return
