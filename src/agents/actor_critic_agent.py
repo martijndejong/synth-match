@@ -56,7 +56,7 @@ class ActorCriticAgent(tf.keras.Model):
         dones = tf.convert_to_tensor(dones, dtype=tf.float32)
 
         with tf.GradientTape(persistent=True) as tape:
-            # Predict actions for the next states and current states
+            # Predict actions for the next states
             next_actions, _ = self(next_states, training=True)
 
             # Get critic values for next state-action pairs
