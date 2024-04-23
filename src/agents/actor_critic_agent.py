@@ -56,7 +56,7 @@ class ActorCriticAgent(tf.keras.Model):
         dones = tf.convert_to_tensor(dones, dtype=tf.float32)
 
         with tf.GradientTape(persistent=True) as tape:
-            # Predict actions for the next states
+            # Predict actions for the next states and current states
             next_actions, _ = self(next_states, training=True)
 
             # Get critic values for next state-action pairs
@@ -77,12 +77,17 @@ class ActorCriticAgent(tf.keras.Model):
             critic_values_for_actor_loss = tf.squeeze(critic_values_for_actor_loss, axis=1)
             actor_loss = -tf.reduce_mean(critic_values_for_actor_loss)
 
-        # Compute gradients and apply updates for actor and critic separately
-        critic_grad = tape.gradient(critic_loss, self.critic.trainable_variables)
-        self.critic_optimizer.apply_gradients(zip(critic_grad, self.critic.trainable_variables))
+        # Compute gradients for both actor and critic including the observer network
+        critic_grad = tape.gradient(critic_loss,
+                                    self.critic.trainable_variables + self.observer_network.trainable_variables)
+        actor_grad = tape.gradient(actor_loss,
+                                   self.actor.trainable_variables + self.observer_network.trainable_variables)
 
-        actor_grad = tape.gradient(actor_loss, self.actor.trainable_variables)
-        self.actor_optimizer.apply_gradients(zip(actor_grad, self.actor.trainable_variables))
+        # Apply gradients
+        self.critic_optimizer.apply_gradients(
+            zip(critic_grad, self.critic.trainable_variables + self.observer_network.trainable_variables))
+        self.actor_optimizer.apply_gradients(
+            zip(actor_grad, self.actor.trainable_variables + self.observer_network.trainable_variables))
 
         del tape  # Free tape memory
 
