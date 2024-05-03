@@ -10,11 +10,16 @@ from src.environment.plots import initialize_plots, update_plots
 
 
 class Environment:
-    def __init__(self, synthesizer=None, control_mode="absolute", render_mode=None, note_length=1.0):
-        self.synthesizer = synthesizer
+    def __init__(self, synth_host=None, control_mode="absolute", render_mode=None, note_length=1.0, sampling_freq=44100.0):
+        self.synth_host = synth_host
+        self.synthesizer = self.synth_host.vst
         self.control_mode = control_mode
         self.render_mode = render_mode
         self.note_length = note_length
+        self.sampling_freq = sampling_freq
+
+        self.current_audio = AudioProcessor(audio_sample=None, sampling_freq=self.sampling_freq)
+        self.target_audio = AudioProcessor(audio_sample=None, sampling_freq=self.sampling_freq)
 
         self.episode = 0
         self.step_count = 0
@@ -34,18 +39,35 @@ class Environment:
         if render_mode:
             self.fig, self.axes = initialize_plots(rows=2, cols=2)
 
-    def reset(self):
+    def get_output_shape(self):
+        """
+        Provide the output shape for the Agent (i.e., number of actions)
+        """
+        return self.get_num_params()
+    
+    def get_input_shape(self):
+        """
+        Provide the input shape for the Agent (i.e., state shape)
+        """
+        rnd_state = self.reset(increment_episode=False)
+        return rnd_state.shape
+    
+    def reset(self, increment_episode = True):
         """
         Resets the environment to a (random) initial state and returns the initial observation.
         This function is typically called at the beginning of each new episode
 
         :return: state
         """
-        self.episode += 1
+        if increment_episode:
+            self.episode += 1
         self.step_count = 0
         self.total_reward = 0
         self.target_sound, self.target_params = self.play_sound_random_params()
         self.current_sound, self.current_params = self.play_sound_random_params()
+
+        self.target_audio.update_sample(audio_sample=self.target_sound)
+        self.current_audio.update_sample(audio_sample=self.current_sound)
 
         state = self.calculate_state()
 
@@ -79,7 +101,8 @@ class Environment:
 
         self.step_count += 1
 
-        self.current_sound = self.synthesizer.play_note(note='C4', duration=self.note_length)
+        self.current_sound = self.synth_host.play_note(note=64, note_duration=self.note_length)
+        self.current_audio.update_sample(audio_sample=self.current_sound)
 
         # Update state, reward, and done, after step
         state = self.calculate_state()
@@ -111,10 +134,8 @@ class Environment:
         # FIXME: can the update plot function only take 'environment' as input, and then pass environment=self?
         update_plots(
             axes=self.axes,
-            target_spectrogram=AudioProcessor(audio_sample=self.target_sound,
-                                              sampling_freq=44100.0).calculate_spectrogram(),
-            current_spectrogram=AudioProcessor(audio_sample=self.current_sound,
-                                               sampling_freq=44100.0).calculate_spectrogram(),
+            target_spectrogram=self.target_audio.spectrogram,
+            current_spectrogram=self.current_audio.spectrogram,
             state_spectrogram=self.state,
             param_names=self.param_names,
             current_params=self.current_params,
@@ -161,20 +182,17 @@ class Environment:
         random_params = np.random.uniform(low=0.0, high=1.0, size=param_len)
         self.set_synth_params(parameters=random_params)
 
-        return self.synthesizer.play_note(note='C4', duration=self.note_length), random_params
+        return self.synth_host.play_note(note=64, note_duration=self.note_length), random_params
 
     def calculate_state(self):
-        # FIXME: PLACEHOLDER CODE -- idea: have a state definition, instead of just returning the current sound
-        target_audio = AudioProcessor(audio_sample=self.target_sound, sampling_freq=44100.0).calculate_spectrogram()
-        current_audio = AudioProcessor(audio_sample=self.current_sound, sampling_freq=44100.0).calculate_spectrogram()
-        # return np.expand_dims(target_audio - current_audio, axis=-1)
-        return np.stack((current_audio, target_audio), axis=-1)
+        # return np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
+        return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
+        
 
     def reward_function(self):
         # FIXME: PLACEHOLDER CODE -- properly pass audio processor object between functions and classes
-        #   maybe instantiate self.target- and self.current_audio and update the sample on note play, instead of new obj
-        target_audio = AudioProcessor(audio_sample=self.target_sound, sampling_freq=44100.0).calculate_spectrogram()
-        current_audio = AudioProcessor(audio_sample=self.current_sound, sampling_freq=44100.0).calculate_spectrogram()
+        target_audio = self.target_audio.spectrogram
+        current_audio = self.current_audio.spectrogram
 
         similarity_score = rmse_similarity(current_sample=current_audio, target_sample=target_audio)
         time_penalty = time_cost(step_count=self.step_count, factor=0.01)
@@ -189,7 +207,7 @@ class Environment:
         return reward
 
     def check_if_done(self):
-        similarity_score = rmse_similarity(current_sample=self.current_sound, target_sample=self.target_sound)
+        similarity_score = rmse_similarity(current_sample=self.current_audio.spectrogram, target_sample=self.target_audio.spectrogram)
         if similarity_score >= 0.99:  # or similarity_score <= 1e-5:
             return True
 
