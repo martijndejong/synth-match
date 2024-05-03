@@ -1,6 +1,6 @@
 # Import environment and synthesizer
 from src.environment.environment import Environment
-from src.synthesizers.super_simple_synth import SuperSimpleSynth
+from src.synthesizers.super_simple_synth import SuperSimpleHost
 from pyvst import SimpleHost
 
 # Import observer and actor network
@@ -18,7 +18,7 @@ SAMPLING_RATE = 44100.0
 NOTE_LENGTH = 0.5
 
 # Create synthesizer object
-# synth = SuperSimpleSynth(sample_rate=SAMPLING_RATE)
+# host = SuperSimpleHost(sample_rate=SAMPLING_RATE)
 host = SimpleHost("/mnt/c/github/synth-match/amsynth_vst.so", sample_rate=SAMPLING_RATE)
 
 # Create environment object and pass synthesizer object
