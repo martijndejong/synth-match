@@ -2,3 +2,4 @@
 # separate from pyproject.toml, which defines project dependencies and metadata
 [virtualenvs]
 in-project = true
+package-mode = false

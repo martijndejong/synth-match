@@ -3,6 +3,13 @@ from src.utils.math import linear_interp
 import numpy as np
 # from dataclasses import dataclass, fields
 
+class SuperSimpleHost():
+    def __init__(self, sample_rate=44100.) -> None:
+        self.vst = SuperSimpleSynth(sample_rate=sample_rate)
+
+    def play_note(self, note, note_duration):
+        return self.vst.play_note(note=note, duration=note_duration)
+
 class SuperSimpleSynth(Synthesizer):
     def __init__(self, sample_rate=48000.):
         super().__init__(sample_rate)
@@ -32,7 +39,12 @@ class SuperSimpleSynth(Synthesizer):
 
     def play_note(self, note, duration):
         # Convert note to frequency
-        freq = _note_to_freq(note)
+        if type(note) == str:
+            freq = _note_to_freq(note)
+        elif type(note) == int:
+            freq = _note_number_to_freq(note) 
+        else:
+            TypeError("Note should be either string (e.g., 'C4'), or int (e.g., 60)")
 
         # FIXME: not the nicest way to explicitly update each parameter here each time
         #   but this synth is for testing only anyway
@@ -93,6 +105,19 @@ def _note_to_freq(note):
     # Calculate the frequency
     frequency = 2 ** (n / 12) * 440
     return frequency
+
+def _note_number_to_freq(note_number):
+    """
+    Convert a MIDI note number to its corresponding frequency in Hz.
+    With 69 corresponding to A4 (440 Hz)
+    
+    Parameters:
+        note_number (int): The MIDI note number.
+        
+    Returns:
+        float: The frequency of the note in Hz.
+    """
+    return 440.0 * (2 ** ((note_number - 69) / 12.0))
 
 
 # @dataclass

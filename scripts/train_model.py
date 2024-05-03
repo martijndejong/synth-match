@@ -1,6 +1,7 @@
 # Import environment and synthesizer
 from src.environment.environment import Environment
-from src.synthesizers.super_simple_synth import SuperSimpleSynth
+from src.synthesizers.super_simple_synth import SuperSimpleHost
+from pyvst import SimpleHost
 
 # Import observer and actor network
 from src.observers.spectrogram_observer import build_spectrogram_observer
@@ -17,33 +18,25 @@ SAMPLING_RATE = 44100.0
 NOTE_LENGTH = 0.5
 
 # Create synthesizer object
-synth = SuperSimpleSynth(sample_rate=SAMPLING_RATE)
+# host = SuperSimpleHost(sample_rate=SAMPLING_RATE)
+host = SimpleHost("/mnt/c/github/synth-match/amsynth_vst.so", sample_rate=SAMPLING_RATE)
 
 # Create environment object and pass synthesizer object
-env = Environment(synthesizer=synth, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=True)
+env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=True, sampling_freq=SAMPLING_RATE)
 
-action_dim = env.get_num_params()
 hidden_dim = 256  # Can be adjusted
 gamma = 0.99  # Discount factor for future rewards
 
-# TODO: @Job van Zijl, mss dit:?
-# env.get_input_shape()
-# env.get_output_shape()
+input_shape = env.get_input_shape()
+output_shape = env.get_output_shape()
 
 # Create Observer network and Actor Critic agent network
-# TODO: Create systematic way of retrieving the input shape nicely, so that it is plug and play
-random_audio, _ = env.play_sound_random_params()
-random_spectrogram = AudioProcessor(
-    audio_sample=random_audio,
-    sampling_freq=SAMPLING_RATE
-).calculate_spectrogram()
-random_spectrogram = np.stack((random_spectrogram,random_spectrogram), axis=-1)
 observer_network = build_spectrogram_observer(
-    input_shape=random_spectrogram.shape  # (int(SAMPLING_RATE*NOTE_LENGTH), 1)
+    input_shape=input_shape  # (int(SAMPLING_RATE*NOTE_LENGTH), 1)
 )
 model = ActorCriticAgent(
     observer_network=observer_network,
-    action_dim=action_dim,
+    action_dim=output_shape,
     hidden_dim=hidden_dim,
     gamma=gamma
 )
