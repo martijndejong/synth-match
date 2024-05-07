@@ -2,7 +2,7 @@
 Attempt at using reinforcement learning (RL) to generate synth patches from samples.
 
 ## Overview
-SynthMatch is a project that uses reinforcement learning to train an agent to control an audio synthesizer to target sound. Unlike other methods that might rely on supervised learning, RL is used because the infinite space of continuous parameter combinations makes direct prediction impractical. RL uses a control loop to iteratively adjust parameters based on feedback, effectively navigating this complex space to achieve the desired audio output.
+SynthMatch is a project that uses reinforcement learning to train an agent to control an audio synthesizer to replicate a target sound by finding the right combination of synthesizer parameters. Unlike other methods that might rely on supervised learning, RL is used because the infinite space of continuous synthesizer parameter combinations makes direct prediction of these parameters impractical. The RL agent uses a control loop to iteratively adjust the synthesizer parameters based on feedback, effectively navigating this complex space to achieve the desired audio output.
 
 Here is a screenshot of the agent in action, controlling a simple synthesizer to learn to reproduce a target sound:
 ![render_eaxmple_early_stage](https://github.com/martijndejong/synth-match/assets/12080489/68af3000-4ff3-4dd2-b7a4-0c05e3f019af)
