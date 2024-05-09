@@ -29,7 +29,7 @@ Creating venv with dependencies listed in pyproject.toml
 poetry install
 ```
 
-> **Note:** on Windows, when running the code after using Poetry to install the packages, you may get *ModuleNotFoundError: No module named 'tensorflow'* 
+> **Note:** on Windows, after using Poetry to install the packages, you may get *ModuleNotFoundError: No module named 'tensorflow'* when running the code.
 > 
 >  To fix this, pip install TensorFlow into your venv using the following commands:
 > ```sh
