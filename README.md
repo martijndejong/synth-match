@@ -24,9 +24,24 @@ The RL agent interacts with a custom environment that houses a synthesizer objec
 # Instructions
 
 ## Poetry
-Installing the specified dependencies:
+Creating venv with dependencies listed in pyproject.toml
 ```sh
 poetry install
+```
+
+> **Note:** on Windows, when running the code after using Poetry to install the packages, you may get *ModuleNotFoundError: No module named 'tensorflow'* 
+> 
+>  To fix this, pip install TensorFlow into your venv using the following commands:
+> ```sh
+> poetry shell
+> ```
+> ```sh
+> pip install tensorflow
+> ```
+
+Resolves and installs the latest compatible versions of dependencies.
+```sh
+poetry update
 ```
 
 Adding packages that will be part of the final solution:
