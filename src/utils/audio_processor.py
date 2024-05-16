@@ -14,7 +14,7 @@ class AudioProcessor:
     def update_sample(self, audio_sample):
         self.audio_sample = audio_sample
         self.convert_to_mono()
-        self.crop_sample(length=2.0)
+        self.crop_sample(length=1.0)
         self.calculate_spectrogram()
 
     def convert_to_mono(self):

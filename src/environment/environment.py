@@ -136,7 +136,7 @@ class Environment:
             axes=self.axes,
             target_spectrogram=self.target_audio.spectrogram,
             current_spectrogram=self.current_audio.spectrogram,
-            state_spectrogram=self.state,
+            state_spectrogram=np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1),
             param_names=self.param_names,
             current_params=self.current_params,
             target_params=self.target_params,
@@ -186,15 +186,16 @@ class Environment:
 
     def calculate_state(self):
         # return np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
-        return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
-        
+        # return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
+        return self.target_params - self.current_params
 
     def reward_function(self):
         # FIXME: PLACEHOLDER CODE -- properly pass audio processor object between functions and classes
         target_audio = self.target_audio.spectrogram
         current_audio = self.current_audio.spectrogram
 
-        similarity_score = rmse_similarity(current_sample=current_audio, target_sample=target_audio)
+        similarity_score = rmse_similarity(current_sample=self.current_params, target_sample=self.target_params)
+        # similarity_score = rmse_similarity(current_sample=current_audio, target_sample=target_audio)
         time_penalty = time_cost(step_count=self.step_count, factor=0.01)
         action_penalty = action_cost(
             action=self.last_action,
@@ -207,6 +208,7 @@ class Environment:
         return reward
 
     def check_if_done(self):
+        # TODO: There should be a big reward if the episode is ended by high similarity score
         similarity_score = rmse_similarity(current_sample=self.current_audio.spectrogram, target_sample=self.target_audio.spectrogram)
         if similarity_score >= 0.99:  # or similarity_score <= 1e-5:
             return True
