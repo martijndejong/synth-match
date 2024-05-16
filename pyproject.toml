@@ -6,11 +6,12 @@ authors = ["Job van Zijl"]
 readme = "README.md"
 
 [tool.poetry.dependencies]
-python = ">=3.9, <3.12" # python versions that satisfy both matplotlib and TF
+python = ">=3.9, <3.11" # python versions that satisfy both matplotlib and TF
 numpy = "^1.26.4"
 black = "^24.3.0"
 tensorflow-io-gcs-filesystem = "0.31.0" # trying to use any newer version failed
-tensorflow = "^2.16.1"
+tensorflow = "<2.11" # TensorFlow 2.10 was the last TensorFlow release that supported GPU on native-Windows
+#                      tensorflow-2.10.0 | python: 3.7-3.10 | cuDNN: 8.1 | CUDA: 11.2
 librosa = "^0.10.1"
 pyvst = {git = "https://github.com/simlmx/pyvst.git", rev = "master"}
 
