@@ -4,7 +4,7 @@ from src.synthesizers.super_simple_synth import SuperSimpleHost
 from pyvst import SimpleHost
 
 # Import observer and actor network
-from src.observers.spectrogram_observer import build_spectrogram_observer
+from src.observers.parameter_observer import build_parameter_observer
 from src.agents.actor_critic_agent import ActorCriticAgent
 
 from src.utils.replay_buffer import ReplayBuffer
@@ -18,8 +18,8 @@ SAMPLING_RATE = 44100.0
 NOTE_LENGTH = 0.5
 
 # Create synthesizer object
-# host = SuperSimpleHost(sample_rate=SAMPLING_RATE)
-host = SimpleHost("/mnt/c/github/synth-match/amsynth_vst.so", sample_rate=SAMPLING_RATE)
+host = SuperSimpleHost(sample_rate=SAMPLING_RATE)
+# host = SimpleHost("/mnt/c/github/synth-match/amsynth_vst.so", sample_rate=SAMPLING_RATE)
 
 # Create environment object and pass synthesizer object
 env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=True, sampling_freq=SAMPLING_RATE)
@@ -31,7 +31,7 @@ input_shape = env.get_input_shape()
 output_shape = env.get_output_shape()
 
 # Create Observer network and Actor Critic agent network
-observer_network = build_spectrogram_observer(
+observer_network = build_parameter_observer(
     input_shape=input_shape  # (int(SAMPLING_RATE*NOTE_LENGTH), 1)
 )
 model = ActorCriticAgent(
