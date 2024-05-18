@@ -33,7 +33,7 @@ class SuperSimpleSynth(Synthesizer):
 
         self.param_range = [
             # (0.0, 5 * np.sqrt(2)),
-            (0.0, 10.0),
+            (0.0, 8.0),
             (0.0, 1000.0)
         ]
 

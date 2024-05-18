@@ -4,18 +4,16 @@ from src.synthesizers.super_simple_synth import SuperSimpleHost
 from pyvst import SimpleHost
 
 # Import observer and actor network
-from src.observers.parameter_observer import build_parameter_observer
-from src.agents.actor_critic_agent import ActorCriticAgent
+from src.observers import build_parameter_observer
+from src.agents import ActorCriticAgent
 
 from src.utils.replay_buffer import ReplayBuffer
 import numpy as np
 
-# TODO: this import should be removed when no longer needed for temp code
-from src.utils.audio_processor import AudioProcessor
 
 # Set constants
 SAMPLING_RATE = 44100.0
-NOTE_LENGTH = 0.5
+NOTE_LENGTH = 1.0
 
 # Create synthesizer object
 host = SuperSimpleHost(sample_rate=SAMPLING_RATE)

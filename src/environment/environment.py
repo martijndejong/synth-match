@@ -4,13 +4,14 @@ Adhering to the OpenAI Gym env naming conventions for functions
 """
 
 import numpy as np
-from src.environment.reward_functions import rmse_similarity, time_cost, action_cost
+from src.environment.reward_functions import rmse_similarity, time_cost, action_cost, calculate_weighted_ssim
 from src.utils.audio_processor import AudioProcessor
 from src.environment.render_functions import initialize_plots, update_plots
 
 
 class Environment:
-    def __init__(self, synth_host=None, control_mode="absolute", render_mode=None, note_length=1.0, sampling_freq=44100.0):
+    def __init__(self, synth_host=None, control_mode="absolute", render_mode=None, note_length=1.0,
+                 sampling_freq=44100.0):
         self.synth_host = synth_host
         self.synthesizer = self.synth_host.vst
         self.control_mode = control_mode
@@ -26,7 +27,6 @@ class Environment:
         self.last_reward = 0
         self.total_reward = 0
 
-        self.last_action = None
         self.state = None
         self.target_sound = None
         self.target_params = None
@@ -44,15 +44,15 @@ class Environment:
         Provide the output shape for the Agent (i.e., number of actions)
         """
         return self.get_num_params()
-    
+
     def get_input_shape(self):
         """
         Provide the input shape for the Agent (i.e., state shape)
         """
         rnd_state = self.reset(increment_episode=False)
         return rnd_state.shape
-    
-    def reset(self, increment_episode = True):
+
+    def reset(self, increment_episode=True):
         """
         Resets the environment to a (random) initial state and returns the initial observation.
         This function is typically called at the beginning of each new episode
@@ -85,7 +85,6 @@ class Environment:
         done: boolean indicating whether the episode has ended
         """
         print(f"DEBUG ACTIONS: {action}")
-        self.last_action = action
         # Environment is either controlled by incremental changes to synth parameters, or by directly setting them
         self.previous_params = self.get_synth_params()  # store synth params before taking step
         if self.control_mode == "incremental":
@@ -106,8 +105,7 @@ class Environment:
 
         # Update state, reward, and done, after step
         state = self.calculate_state()
-        reward = self.reward_function()
-        done = self.check_if_done()
+        reward, done = self.reward_function(action)
 
         # Set environment attributes
         self.state = state
@@ -178,31 +176,31 @@ class Environment:
         # return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
         return self.target_params - self.current_params
 
-    def reward_function(self):
+    def reward_function(self, action):
         # FIXME: PLACEHOLDER CODE -- properly pass audio processor object between functions and classes
         target_audio = self.target_audio.spectrogram
         current_audio = self.current_audio.spectrogram
 
-        similarity_score = rmse_similarity(current_sample=self.current_params, target_sample=self.target_params)
+        # similarity_score = rmse_similarity(current_sample=self.current_params, target_sample=self.target_params)
         # similarity_score = rmse_similarity(current_sample=current_audio, target_sample=target_audio)
-        time_penalty = time_cost(step_count=self.step_count, factor=0.01)
+        similarity_score = calculate_weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
+        time_penalty = time_cost(step_count=self.step_count, factor=0.1)
         action_penalty = action_cost(
-            action=self.last_action,
+            action=action,
             factor=10.0
         )
 
-        reward = similarity_score - time_penalty - action_penalty
-        print(f"DEBUG REWARD: {reward:.3f} = {similarity_score:.3f} - {time_penalty:.3f} - {action_penalty:.3f}")
+        is_done, bonus = self.check_if_done(similarity_score)
 
-        return reward
+        reward = similarity_score ** 2 * 10 - time_penalty - action_penalty + bonus
 
-    def check_if_done(self):
-        # TODO: There should be a big reward if the episode is ended by high similarity score
-        similarity_score = rmse_similarity(current_sample=self.current_audio.spectrogram, target_sample=self.target_audio.spectrogram)
-        if similarity_score >= 0.99:  # or similarity_score <= 1e-5:
-            return True
+        return reward, is_done
 
-        if self.step_count > 100:
-            return True
+    def check_if_done(self, similarity_score):
+        if similarity_score >= 0.9:  # or similarity_score <= 1e-5:
+            return True, 100
 
-        return False
+        if self.step_count >= 100:
+            return True, -100
+
+        return False, 0
