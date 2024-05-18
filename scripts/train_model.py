@@ -13,7 +13,7 @@ import numpy as np
 
 # Set constants
 SAMPLING_RATE = 44100.0
-NOTE_LENGTH = 0.5
+NOTE_LENGTH = 1.0
 
 # Create synthesizer object
 host = SuperSimpleHost(sample_rate=SAMPLING_RATE)
