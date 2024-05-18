@@ -6,7 +6,7 @@ Adhering to the OpenAI Gym env naming conventions for functions
 import numpy as np
 from src.environment.reward_functions import rmse_similarity, time_cost, action_cost
 from src.utils.audio_processor import AudioProcessor
-from src.environment.plots import initialize_plots, update_plots
+from src.environment.render_functions import initialize_plots, update_plots
 
 
 class Environment:
@@ -131,19 +131,8 @@ class Environment:
         if self.render_mode is None:
             raise Exception("Render method called without specifying any render mode.")
 
-        # FIXME: can the update plot function only take 'environment' as input, and then pass environment=self?
         update_plots(
-            axes=self.axes,
-            target_spectrogram=self.target_audio.spectrogram,
-            current_spectrogram=self.current_audio.spectrogram,
-            state_spectrogram=np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1),
-            param_names=self.param_names,
-            current_params=self.current_params,
-            target_params=self.target_params,
-            reward=self.last_reward,
-            total_reward=self.total_reward,
-            episode=self.episode,
-            step=self.step_count
+            env=self
         )
 
     def get_num_params(self):

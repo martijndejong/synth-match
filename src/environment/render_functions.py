@@ -1,5 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
+# from src.environment.environment import Environment
 
 
 def initialize_plots(rows, cols, figsize=(12, 8)):
@@ -13,7 +14,7 @@ def initialize_plots(rows, cols, figsize=(12, 8)):
 
 def plot_spectrogram(ax, spectrogram, title, cmap='magma'):
     """Plot a spectrogram on a given axes."""
-    ax.imshow(spectrogram, aspect='auto', origin='lower', cmap=cmap)
+    ax.imshow(spectrogram, aspect='auto', origin='lower', cmap=cmap, interpolation='antialiased')
     ax.set_title(title)
 
 
@@ -21,7 +22,7 @@ def plot_spectrogram_multichannel(ax, spectrogram, title):
     """Plot a multichannel spectrogram on a given axes."""
     # Pad the third dimension with zeros to extend (x, y, 2) to (x, y, 3)
     spectrogram_rgb = np.pad(spectrogram, ((0, 0), (0, 0), (0, 1)), 'constant', constant_values=(0,))
-    ax.imshow(spectrogram_rgb, aspect='auto', origin='lower')
+    ax.imshow(spectrogram_rgb, aspect='auto', origin='lower', interpolation='antialiased')
     ax.set_title(title)
 
 
@@ -40,15 +41,39 @@ def plot_text(ax, param_names, current_params, target_params, reward, total_rewa
     ax.text(0.5, 0.75, synth_info, ha='center', va='top', fontsize=8, transform=ax.transAxes)
 
 
-def update_plots(axes, target_spectrogram, current_spectrogram, state_spectrogram, param_names,
-                 current_params, target_params, reward, total_reward, episode, step):
-    """Update plots with new data."""
-    axes = axes.flatten()  # Flatten in case it's a matrix of axes
+def update_plots(env):
+    """
+    Main render function called by environment.
+    This function calls the other specific plotting functions
+    Update plots with new data.
+    """
+    axes = env.axes.flatten()  # Flatten in case it's a matrix of axes
     for ax in axes:
         ax.clear()
-    plot_spectrogram(axes[0], target_spectrogram, "Target Audio Spectrogram")
-    plot_text(axes[1], param_names, current_params, target_params, reward, total_reward, episode, step)
-    plot_spectrogram(axes[2], current_spectrogram, "Current Synth Audio Spectrogram")
-    plot_spectrogram_multichannel(axes[3], state_spectrogram, "Observed State Spectrogram")
+    plot_spectrogram(
+        ax=axes[0],
+        spectrogram=env.target_audio.spectrogram,
+        title="Target Audio Spectrogram"
+    )
+    plot_text(
+        ax=axes[1],
+        param_names=env.param_names,
+        current_params=env.current_params,
+        target_params=env.target_params,
+        reward=env.last_reward,
+        total_reward=env.total_reward,
+        episode=env.episode,
+        step=env.step_count
+    )
+    plot_spectrogram(
+        ax=axes[2],
+        spectrogram=env.current_audio.spectrogram,
+        title="Current Synth Audio Spectrogram"
+    )
+    plot_spectrogram_multichannel(
+        ax=axes[3],
+        spectrogram=np.stack((env.current_audio.spectrogram, env.target_audio.spectrogram), axis=-1),
+        title="Observed State Spectrogram"
+    )
     plt.draw()
-    plt.pause(0.1)
+    plt.pause(0.01)
