@@ -4,7 +4,7 @@ from src.synthesizers.super_simple_synth import SuperSimpleHost
 from pyvst import SimpleHost
 
 # Import observer and actor network
-from src.observers import build_parameter_observer
+from src.observers import build_spectrogram_observer
 from src.agents import ActorCriticAgent
 
 from src.utils.replay_buffer import ReplayBuffer
@@ -29,7 +29,7 @@ input_shape = env.get_input_shape()
 output_shape = env.get_output_shape()
 
 # Create Observer network and Actor Critic agent network
-observer_network = build_parameter_observer(
+observer_network = build_spectrogram_observer(
     input_shape=input_shape  # (int(SAMPLING_RATE*NOTE_LENGTH), 1)
 )
 model = ActorCriticAgent(

@@ -110,3 +110,31 @@ def time_cost(step_count, factor=0.1):
 
 def action_cost(action: np.ndarray, factor: float = 10.0):
     return factor * np.sum((action) ** 2)
+
+
+def saturation_penalty(synth_params, actions, penalty_amount=10.0):
+    """
+    Calculate a penalty based on the actions that would saturate the synth parameters.
+
+    Args:
+    - synth_params (np.ndarray): Current synth parameters (shape: (num_params,)).
+    - actions (np.ndarray): Actions to be taken (shape: (num_params,)).
+    - penalty_amount (float): The penalty amount for saturating a parameter.
+
+    Returns:
+    - penalty (float): Total penalty for the given actions.
+    """
+    # Calculate the resulting parameters after applying the actions
+    new_params = synth_params + actions
+
+    # Calculate the amount of oversaturation for each parameter
+    overshoot_below = np.minimum(0, new_params)  # Amount below 0
+    overshoot_above = np.maximum(1, new_params) - 1  # Amount above 1
+
+    # Calculate the total oversaturation
+    total_overshoot = np.abs(overshoot_below) + np.abs(overshoot_above)
+
+    # Calculate the penalty
+    penalty = np.sum(total_overshoot) * penalty_amount
+
+    return penalty

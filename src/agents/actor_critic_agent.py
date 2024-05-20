@@ -1,5 +1,7 @@
 import tensorflow as tf
 from tensorflow.keras import layers, models, optimizers
+from src.environment.environment import State  # Import the State dataclass
+
 
 class ActorCriticAgent(tf.keras.Model):
     def __init__(self, observer_network, action_dim, hidden_dim=256, gamma=0.99):
@@ -31,15 +33,19 @@ class ActorCriticAgent(tf.keras.Model):
         self.critic_optimizer = optimizers.Adam(learning_rate=1e-3)
 
     def call(self, inputs, training=False, action=None):
-        features = self.observer_network(inputs, training=training)
+        spectrogram = inputs.spectrogram
+        synth_params = inputs.synth_params
+
+        features = self.observer_network(spectrogram, training=training)
+        concat_input = tf.concat([features, synth_params], axis=-1)
 
         # Actor forward pass
-        actor_output = self.actor(features)
+        actor_output = self.actor(concat_input)
 
         # Critic
         # Use provided action if available, otherwise use the actor's output
         action_to_use = action if action is not None else actor_output
-        critic_input = tf.concat([features, action_to_use], axis=-1)
+        critic_input = tf.concat([concat_input, action_to_use], axis=-1)
 
         # Critic forward pass
         critic_output = self.critic(critic_input)
@@ -49,10 +55,16 @@ class ActorCriticAgent(tf.keras.Model):
     def train_step(self, data):
         states, actions, rewards, next_states, dones = data
 
-        states = tf.convert_to_tensor(states, dtype=tf.float32)
+        states = State(
+            spectrogram=tf.convert_to_tensor([s.spectrogram for s in states], dtype=tf.float32),
+            synth_params=tf.convert_to_tensor([s.synth_params for s in states], dtype=tf.float32)
+        )
         actions = tf.convert_to_tensor(actions, dtype=tf.float32)
         rewards = tf.convert_to_tensor(rewards, dtype=tf.float32)
-        next_states = tf.convert_to_tensor(next_states, dtype=tf.float32)
+        next_states = State(
+            spectrogram=tf.convert_to_tensor([s.spectrogram for s in next_states], dtype=tf.float32),
+            synth_params=tf.convert_to_tensor([s.synth_params for s in next_states], dtype=tf.float32)
+        )
         dones = tf.convert_to_tensor(dones, dtype=tf.float32)
 
         with tf.GradientTape(persistent=True) as tape:
@@ -94,6 +106,9 @@ class ActorCriticAgent(tf.keras.Model):
         return {"actor_loss": actor_loss.numpy(), "critic_loss": critic_loss.numpy()}
 
     def act(self, state):
-        state = tf.expand_dims(state, 0)
+        state = State(
+            spectrogram=tf.expand_dims(state.spectrogram, 0),
+            synth_params=tf.expand_dims(state.synth_params, 0)
+        )
         action, _ = self(state, training=False)
         return action[0].numpy()

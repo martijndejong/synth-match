@@ -4,7 +4,15 @@ Adhering to the OpenAI Gym env naming conventions for functions
 """
 
 import numpy as np
-from src.environment.reward_functions import rmse_similarity, time_cost, action_cost, calculate_weighted_ssim
+from dataclasses import dataclass
+
+from src.environment.reward_functions import (
+    rmse_similarity,
+    time_cost,
+    action_cost,
+    calculate_weighted_ssim,
+    saturation_penalty
+)
 from src.utils.audio_processor import AudioProcessor
 from src.environment.render_functions import initialize_plots, update_plots
 
@@ -50,7 +58,7 @@ class Environment:
         Provide the input shape for the Agent (i.e., state shape)
         """
         rnd_state = self.reset(increment_episode=False)
-        return rnd_state.shape
+        return rnd_state.spectrogram.shape
 
     def reset(self, increment_episode=True):
         """
@@ -154,7 +162,10 @@ class Environment:
         Iterate over all the synth parameters to get their current value
         :return: list of current synthesizer parameter values
         """
-        return np.array([self.synthesizer.get_param_value(i) for i in range(self.synthesizer.num_params)])
+        return np.array(
+            [self.synthesizer.get_param_value(i) for i in range(self.synthesizer.num_params)],
+            dtype=np.float32
+        )
 
     def get_synth_param_names(self) -> list[str]:
         """
@@ -172,9 +183,12 @@ class Environment:
         return self.synth_host.play_note(note=64, note_duration=self.note_length), random_params
 
     def calculate_state(self):
-        # return np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
-        # return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
-        return self.target_params - self.current_params
+        # error_spectrogram = np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
+        stack_spectrogram = np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
+        return State(
+            spectrogram=stack_spectrogram,
+            synth_params=self.get_synth_params()
+        )
 
     def reward_function(self, action):
         # FIXME: PLACEHOLDER CODE -- properly pass audio processor object between functions and classes
@@ -189,10 +203,11 @@ class Environment:
             action=action,
             factor=10.0
         )
+        saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action)
 
         is_done, bonus = self.check_if_done(similarity_score)
 
-        reward = similarity_score ** 2 * 10 - time_penalty - action_penalty + bonus
+        reward = similarity_score ** 2 * 10 - time_penalty - action_penalty - saturate_penalty + bonus
 
         return reward, is_done
 
@@ -204,3 +219,9 @@ class Environment:
             return True, -100
 
         return False, 0
+
+
+@dataclass
+class State:
+    spectrogram: np.ndarray
+    synth_params: np.ndarray
