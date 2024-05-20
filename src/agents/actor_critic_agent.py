@@ -30,16 +30,18 @@ class ActorCriticAgent(tf.keras.Model):
         self.actor_optimizer = optimizers.Adam(learning_rate=1e-4)
         self.critic_optimizer = optimizers.Adam(learning_rate=1e-3)
 
-    def call(self, inputs, training=False, action=None):
+    def call(self, inputs, synth_params, training=False, action=None):
         features = self.observer_network(inputs, training=training)
+        # Concatenate the features and synth_params
+        concat_input = tf.concat([features, synth_params], axis=-1)
 
         # Actor forward pass
-        actor_output = self.actor(features)
+        actor_output = self.actor(concat_input)
 
         # Critic
         # Use provided action if available, otherwise use the actor's output
         action_to_use = action if action is not None else actor_output
-        critic_input = tf.concat([features, action_to_use], axis=-1)
+        critic_input = tf.concat([concat_input, action_to_use], axis=-1)
 
         # Critic forward pass
         critic_output = self.critic(critic_input)
@@ -47,24 +49,26 @@ class ActorCriticAgent(tf.keras.Model):
         return actor_output, critic_output
 
     def train_step(self, data):
-        states, actions, rewards, next_states, dones = data
+        states, synth_params, actions, rewards, next_states, next_synth_params, dones = data
 
         states = tf.convert_to_tensor(states, dtype=tf.float32)
+        synth_params = tf.convert_to_tensor(synth_params, dtype=tf.float32)
         actions = tf.convert_to_tensor(actions, dtype=tf.float32)
         rewards = tf.convert_to_tensor(rewards, dtype=tf.float32)
         next_states = tf.convert_to_tensor(next_states, dtype=tf.float32)
+        next_synth_params = tf.convert_to_tensor(next_synth_params, dtype=tf.float32)
         dones = tf.convert_to_tensor(dones, dtype=tf.float32)
 
         with tf.GradientTape(persistent=True) as tape:
             # Predict actions for the next states
-            next_actions, _ = self(next_states, training=True)
+            next_actions, _ = self(next_states, next_synth_params, training=True)
 
             # Get critic values for next state-action pairs
-            _, next_critic_values = self(next_states, training=True, action=next_actions)
+            _, next_critic_values = self(next_states, next_synth_params, training=True, action=next_actions)
             next_critic_values = tf.squeeze(next_critic_values, axis=1)
 
             # Get critic values for the current state-action pairs
-            _, critic_values = self(states, training=True, action=actions)
+            _, critic_values = self(states, synth_params, training=True, action=actions)
             critic_values = tf.squeeze(critic_values, axis=1)
 
             # Critic loss
@@ -72,8 +76,8 @@ class ActorCriticAgent(tf.keras.Model):
             critic_loss = tf.keras.losses.MSE(target_values, critic_values)
 
             # Actor loss (use critic to evaluate the actions predicted by the actor)
-            predicted_actions, _ = self(states, training=True)
-            _, critic_values_for_actor_loss = self(states, training=True, action=predicted_actions)
+            predicted_actions, _ = self(states, synth_params, training=True)
+            _, critic_values_for_actor_loss = self(states, synth_params, training=True, action=predicted_actions)
             critic_values_for_actor_loss = tf.squeeze(critic_values_for_actor_loss, axis=1)
             actor_loss = -tf.reduce_mean(critic_values_for_actor_loss)
 
@@ -93,7 +97,8 @@ class ActorCriticAgent(tf.keras.Model):
 
         return {"actor_loss": actor_loss.numpy(), "critic_loss": critic_loss.numpy()}
 
-    def act(self, state):
+    def act(self, state, synth_params):
         state = tf.expand_dims(state, 0)
-        action, _ = self(state, training=False)
+        synth_params = tf.expand_dims(synth_params, 0)
+        action, _ = self(state, synth_params, training=False)
         return action[0].numpy()

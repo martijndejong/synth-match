@@ -4,7 +4,7 @@ from src.synthesizers.super_simple_synth import SuperSimpleHost
 from pyvst import SimpleHost
 
 # Import observer and actor network
-from src.observers import build_parameter_observer
+from src.observers import build_spectrogram_observer
 from src.agents import ActorCriticAgent
 
 from src.utils.replay_buffer import ReplayBuffer
@@ -29,7 +29,7 @@ input_shape = env.get_input_shape()
 output_shape = env.get_output_shape()
 
 # Create Observer network and Actor Critic agent network
-observer_network = build_parameter_observer(
+observer_network = build_spectrogram_observer(
     input_shape=input_shape  # (int(SAMPLING_RATE*NOTE_LENGTH), 1)
 )
 model = ActorCriticAgent(
@@ -48,25 +48,28 @@ num_episodes = 500  # Number of episodes to train
 rewards_mem = []  # TODO: replace by more systematic logging system in utility functions
 for episode in range(num_episodes):
     state = env.reset()
+    synth_params = env.get_synth_params()
     done = False
     episode_reward = 0
 
     while not done:
-        action = model.act(state)
+        action = model.act(state, synth_params)
         next_state, reward, done = env.step(action)
+        next_synth_params = env.get_synth_params()
         episode_reward += reward
 
         # Store experience in replay memory
-        replay_memory.add((state, action, reward, next_state, done))
+        replay_memory.add((state, synth_params, action, reward, next_state, next_synth_params, done))
 
         # If enough samples are available in memory, sample a batch and perform a training step
         if len(replay_memory) > batch_size:
             print("Training step")
             sampled_experiences = replay_memory.sample(batch_size)
-            states, actions, rewards, next_states, dones = map(np.array, zip(*sampled_experiences))
-            model.train_step((states, actions, rewards, next_states, dones))
+            states, synth_params, actions, rewards, next_states, next_synth_paramss, dones = map(np.array, zip(*sampled_experiences))
+            model.train_step((states, synth_params, actions, rewards, next_states, next_synth_paramss, dones))
 
         state = next_state
+        synth_params = next_synth_params
 
     print(f'Episode {episode + 1}, Total Reward: {episode_reward:.2f}')
     rewards_mem.append(episode_reward)
