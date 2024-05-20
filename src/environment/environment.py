@@ -4,6 +4,8 @@ Adhering to the OpenAI Gym env naming conventions for functions
 """
 
 import numpy as np
+from dataclasses import dataclass
+
 from src.environment.reward_functions import (
     rmse_similarity,
     time_cost,
@@ -56,7 +58,7 @@ class Environment:
         Provide the input shape for the Agent (i.e., state shape)
         """
         rnd_state = self.reset(increment_episode=False)
-        return rnd_state.shape
+        return rnd_state.spectrogram.shape
 
     def reset(self, increment_episode=True):
         """
@@ -181,9 +183,12 @@ class Environment:
         return self.synth_host.play_note(note=64, note_duration=self.note_length), random_params
 
     def calculate_state(self):
-        # return np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
-        return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
-        # return self.target_params - self.current_params
+        # error_spectrogram = np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
+        stack_spectrogram = np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
+        return State(
+            spectrogram=stack_spectrogram,
+            synth_params=self.get_synth_params()
+        )
 
     def reward_function(self, action):
         # FIXME: PLACEHOLDER CODE -- properly pass audio processor object between functions and classes
@@ -214,3 +219,9 @@ class Environment:
             return True, -100
 
         return False, 0
+
+
+@dataclass
+class State:
+    spectrogram: np.ndarray
+    synth_params: np.ndarray

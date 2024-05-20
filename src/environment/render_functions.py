@@ -72,7 +72,7 @@ def update_plots(env):
     )
     plot_spectrogram_multichannel(
         ax=axes[3],
-        spectrogram=np.stack((env.current_audio.spectrogram, env.target_audio.spectrogram), axis=-1),
+        spectrogram=env.state.spectrogram,
         title="Observed State Spectrogram"
     )
     plt.draw()
