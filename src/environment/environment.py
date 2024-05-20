@@ -7,10 +7,14 @@ import numpy as np
 from dataclasses import dataclass
 
 from src.environment.reward_functions import (
-    rmse_similarity,
     time_cost,
     action_cost,
-    calculate_weighted_ssim,
+    weighted_ssim,
+    masked_ssim,
+    mse_similarity,
+    rmse_similarity,
+    mse_similarity_masked,
+    rmse_similarity_masked,
     saturation_penalty
 )
 from src.utils.audio_processor import AudioProcessor
@@ -102,8 +106,13 @@ class Environment:
         elif self.control_mode == "absolute":
             self.set_synth_params(action)
 
+        elif self.control_mode == "human":
+            for i, param_name in enumerate(self.get_synth_param_names()):
+                action[i] = input(f"Set value for {param_name}:")
+            self.set_synth_params(action)
+
         else:
-            raise ValueError("control_mode must be either 'incremental' or 'absolute'")
+            raise ValueError("control_mode must be either 'incremental', 'absolute', or 'human'")
         self.current_params = self.get_synth_params()  # store synth params after taking step
 
         self.step_count += 1
@@ -191,13 +200,8 @@ class Environment:
         )
 
     def reward_function(self, action):
-        # FIXME: PLACEHOLDER CODE -- properly pass audio processor object between functions and classes
-        target_audio = self.target_audio.spectrogram
-        current_audio = self.current_audio.spectrogram
 
-        # similarity_score = rmse_similarity(current_sample=self.current_params, target_sample=self.target_params)
-        # similarity_score = rmse_similarity(current_sample=current_audio, target_sample=target_audio)
-        similarity_score = calculate_weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
+        similarity_score = masked_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
         time_penalty = time_cost(step_count=self.step_count, factor=0.1)
         action_penalty = action_cost(
             action=action,
@@ -207,13 +211,13 @@ class Environment:
 
         is_done, bonus = self.check_if_done(similarity_score)
 
-        reward = similarity_score ** 2 * 10 - time_penalty - action_penalty - saturate_penalty + bonus
+        reward = similarity_score * 10 - time_penalty - action_penalty - saturate_penalty + bonus
 
         return reward, is_done
 
     def check_if_done(self, similarity_score):
         if similarity_score >= 0.9:  # or similarity_score <= 1e-5:
-            return True, 100
+            return True, 500
 
         if self.step_count >= 100:
             return True, -100
