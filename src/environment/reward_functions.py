@@ -26,7 +26,7 @@ def calculate_ssim(image1, image2):
     return ssim_value
 
 
-def calculate_ssim_with_mask(target_spectrogram, current_spectrogram, threshold=0.1):
+def masked_ssim(target_spectrogram, current_spectrogram, threshold=0.1):
     """
     Calculate a modified Structural Similarity Index (SSIM) that focuses on the 'active' parts of the spectrogram,
     ignoring less significant areas.
@@ -43,12 +43,12 @@ def calculate_ssim_with_mask(target_spectrogram, current_spectrogram, threshold=
     target_spectrogram = target_spectrogram.astype(np.float32)
     current_spectrogram = current_spectrogram.astype(np.float32)
 
-    # Generate a mask from the target spectrogram
-    mask = target_spectrogram > threshold
+    # Generate a mask from the spectrograms
+    mask = (current_spectrogram >= threshold) | (target_spectrogram >= threshold)
 
     # Apply mask to both spectrograms
-    masked_target = np.where(mask, target_spectrogram, 0)
-    masked_current = np.where(mask, current_spectrogram, 0)
+    masked_current = current_spectrogram[mask]
+    masked_target = target_spectrogram[mask]
 
     # Calculate SSIM on masked areas
     ssim_value = ssim(masked_target, masked_current, data_range=masked_target.max() - masked_target.min())
@@ -56,7 +56,7 @@ def calculate_ssim_with_mask(target_spectrogram, current_spectrogram, threshold=
     return ssim_value
 
 
-def calculate_weighted_ssim(target_spectrogram, current_spectrogram):
+def weighted_ssim(target_spectrogram, current_spectrogram):
     """
     Calculate a weighted Structural Similarity Index (SSIM) that emphasizes differences in higher energy areas.
 
@@ -102,6 +102,33 @@ def rmse_similarity(current_sample, target_sample):
     # Convert MSE to a similarity measure; lower MSE should yield higher similarity
     similarity = np.exp(-rmse_value)  # Using exponential to ensure a positive similarity score
     return similarity
+
+
+def mse_similarity_masked(current_sample, target_sample, threshold=0.1):
+    """
+    Calculate the similarity between two np arrays using Mean Squared Error (MSE).
+    """
+    mask = (current_sample >= threshold) | (target_sample >= threshold)
+    masked_current = current_sample[mask]
+    masked_target = target_sample[mask]
+
+    mse_value = mse(y_true=masked_target, y_pred=masked_current)
+
+    # Convert MSE to a similarity measure; lower MSE should yield higher similarity
+    similarity = np.exp(-mse_value)  # Using exponential to ensure a positive similarity score
+    return similarity
+
+
+def rmse_similarity_masked(current_sample, target_sample, threshold=0.1):
+    mask = (current_sample >= threshold) | (target_sample >= threshold)
+    masked_current = current_sample[mask]
+    masked_target = target_sample[mask]
+
+    # Ensure there are enough values left after masking
+    if len(masked_current) == 0 or len(masked_target) == 0:
+        return 0
+
+    return rmse_similarity(masked_current, masked_target)
 
 
 def time_cost(step_count, factor=0.1):
