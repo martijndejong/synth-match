@@ -48,28 +48,25 @@ num_episodes = 500  # Number of episodes to train
 rewards_mem = []  # TODO: replace by more systematic logging system in utility functions
 for episode in range(num_episodes):
     state = env.reset()
-    synth_params = env.get_synth_params()
     done = False
     episode_reward = 0
 
     while not done:
-        action = model.act(state, synth_params)
+        action = model.act(state)
         next_state, reward, done = env.step(action)
-        next_synth_params = env.get_synth_params()
         episode_reward += reward
 
         # Store experience in replay memory
-        replay_memory.add((state, synth_params, action, reward, next_state, next_synth_params, done))
+        replay_memory.add((state, action, reward, next_state, done))
 
         # If enough samples are available in memory, sample a batch and perform a training step
         if len(replay_memory) > batch_size:
             print("Training step")
             sampled_experiences = replay_memory.sample(batch_size)
-            states, synth_params, actions, rewards, next_states, next_synth_paramss, dones = map(np.array, zip(*sampled_experiences))
-            model.train_step((states, synth_params, actions, rewards, next_states, next_synth_paramss, dones))
+            states, actions, rewards, next_states, dones = map(np.array, zip(*sampled_experiences))
+            model.train_step((states, actions, rewards, next_states, dones))
 
         state = next_state
-        synth_params = next_synth_params
 
     print(f'Episode {episode + 1}, Total Reward: {episode_reward:.2f}')
     rewards_mem.append(episode_reward)
