@@ -128,7 +128,7 @@ def rmse_similarity_masked(current_sample, target_sample, threshold=0.1):
     if len(masked_current) == 0 or len(masked_target) == 0:
         return 0
 
-    return rmse_similarity(masked_current, masked_target)
+    return rmse_similarity(np.sqrt(masked_current), np.sqrt(masked_target))
 
 
 def time_cost(step_count, factor=0.1):
@@ -136,10 +136,10 @@ def time_cost(step_count, factor=0.1):
 
 
 def action_cost(action: np.ndarray, factor: float = 10.0):
-    return factor * np.sum((action) ** 2)
+    return factor * np.mean((action) ** 2)
 
 
-def saturation_penalty(synth_params, actions, penalty_amount=10.0):
+def saturation_penalty(synth_params, actions, factor=10.0):
     """
     Calculate a penalty based on the actions that would saturate the synth parameters.
 
@@ -162,6 +162,22 @@ def saturation_penalty(synth_params, actions, penalty_amount=10.0):
     total_overshoot = np.abs(overshoot_below) + np.abs(overshoot_above)
 
     # Calculate the penalty
-    penalty = np.sum(total_overshoot) * penalty_amount
+    penalty = np.sum(total_overshoot) * factor
 
     return penalty
+
+
+def directional_reward_penalty(previous_synth_params, target_synth_params, actions, factor=1.0):
+    # Calculate the initial error between previous synth parameters and target synth parameters
+    initial_error = target_synth_params - previous_synth_params
+
+    # Calculate the new error after taking the action
+    new_error = initial_error - actions
+
+    # Calculate the error reduction (positive if the error is reduced, negative if the error increased)
+    error_reduction = abs(initial_error) - abs(new_error)
+
+    # Calculate the final reward/penalty with the tunable factor
+    final_reward_penalty = np.sum(error_reduction) * factor
+
+    return final_reward_penalty
