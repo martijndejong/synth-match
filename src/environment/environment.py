@@ -197,10 +197,10 @@ class Environment:
         # return np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
 
         # State: Stack the current spectrogram and the target spectrogram
-        # return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
+        return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
 
         # (Cheat) State: No need for observation network, just return synth parameter error directly
-        return self.target_params - self.current_params
+        # return self.target_params - self.current_params
 
     def reward_function(self, action):
         # TODO: WE CAN IMPROVE THE REWARD FUNCTION STILL - BELOW ARE SOME EXAMPLES OF REWARD FUNCTIONS WE'RE NOT USING
