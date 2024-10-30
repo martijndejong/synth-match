@@ -51,6 +51,8 @@ class ActorCriticAgent(tf.keras.Model):
         return actor_output, critic_output
 
     def train_step(self, data):
+        # States: What our environment returns, i.e., spectrogram
+        # Synth params: Known input synth parameters
         states, synth_params, actions, rewards, next_states, next_synth_params, dones = data
 
         states = tf.convert_to_tensor(states, dtype=tf.float32)
