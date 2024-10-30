@@ -136,7 +136,7 @@ def time_cost(step_count, factor=0.1):
 
 
 def action_cost(action: np.ndarray, factor: float = 10.0):
-    return factor * np.mean((action) ** 2)
+    return factor * np.sum(action ** 2)
 
 
 def saturation_penalty(synth_params, actions, factor=10.0):
