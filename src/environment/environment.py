@@ -7,11 +7,16 @@ import numpy as np
 from dataclasses import dataclass
 
 from src.environment.reward_functions import (
-    rmse_similarity,
     time_cost,
     action_cost,
-    calculate_weighted_ssim,
-    saturation_penalty
+    weighted_ssim,
+    saturation_penalty,
+    masked_ssim,
+    mse_similarity,
+    rmse_similarity,
+    mse_similarity_masked,
+    rmse_similarity_masked,
+    directional_reward_penalty,
 )
 from src.utils.audio_processor import AudioProcessor
 from src.environment.render_functions import initialize_plots, update_plots
@@ -58,7 +63,7 @@ class Environment:
         Provide the input shape for the Agent (i.e., state shape)
         """
         rnd_state = self.reset(increment_episode=False)
-        return rnd_state.spectrogram.shape
+        return rnd_state.shape
 
     def reset(self, increment_episode=True):
         """
@@ -102,8 +107,13 @@ class Environment:
         elif self.control_mode == "absolute":
             self.set_synth_params(action)
 
+        elif self.control_mode == "human":
+            for i, param_name in enumerate(self.get_synth_param_names()):
+                action[i] = input(f"Set value for {param_name}:")
+            self.set_synth_params(action)
+
         else:
-            raise ValueError("control_mode must be either 'incremental' or 'absolute'")
+            raise ValueError("control_mode must be either 'incremental', 'absolute', or 'human'")
         self.current_params = self.get_synth_params()  # store synth params after taking step
 
         self.step_count += 1
@@ -183,27 +193,29 @@ class Environment:
         return self.synth_host.play_note(note=64, note_duration=self.note_length), random_params
 
     def calculate_state(self):
-        # error_spectrogram = np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
-        stack_spectrogram = np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
-        return State(
-            spectrogram=stack_spectrogram,
-            synth_params=self.get_synth_params()
-        )
+        # State: Target spectrogram minus current spectrogram
+        # return np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
+
+        # State: Stack the current spectrogram and the target spectrogram
+        return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
+
+        # (Cheat) State: No need for observation network, just return synth parameter error directly
+        # return self.target_params - self.current_params
 
     def reward_function(self, action):
-        # FIXME: PLACEHOLDER CODE -- properly pass audio processor object between functions and classes
-        target_audio = self.target_audio.spectrogram
-        current_audio = self.current_audio.spectrogram
+        # TODO: WE CAN IMPROVE THE REWARD FUNCTION STILL - BELOW ARE SOME EXAMPLES OF REWARD FUNCTIONS WE'RE NOT USING
+        # - masked_ssim
+        # - rmse_similarity
+        # - rmse_similarity_masked
+        # - directional_reward_penalty
 
-        # similarity_score = rmse_similarity(current_sample=self.current_params, target_sample=self.target_params)
-        # similarity_score = rmse_similarity(current_sample=current_audio, target_sample=target_audio)
-        similarity_score = calculate_weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
+        similarity_score = weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
         time_penalty = time_cost(step_count=self.step_count, factor=0.1)
         action_penalty = action_cost(
             action=action,
             factor=10.0
         )
-        saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action)
+        saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action, factor=1.0)
 
         is_done, bonus = self.check_if_done(similarity_score)
 
@@ -212,10 +224,11 @@ class Environment:
         return reward, is_done
 
     def check_if_done(self, similarity_score):
-        if similarity_score >= 0.9:  # or similarity_score <= 1e-5:
-            return True, 100
+        max_steps = 100
+        if similarity_score >= 0.9:
+            return True, 100  # (max_steps - self.step_count)
 
-        if self.step_count >= 100:
+        if self.step_count >= max_steps:
             return True, -100
 
         return False, 0

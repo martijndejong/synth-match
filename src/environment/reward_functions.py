@@ -26,7 +26,7 @@ def calculate_ssim(image1, image2):
     return ssim_value
 
 
-def calculate_ssim_with_mask(target_spectrogram, current_spectrogram, threshold=0.1):
+def masked_ssim(target_spectrogram, current_spectrogram, threshold=0.1):
     """
     Calculate a modified Structural Similarity Index (SSIM) that focuses on the 'active' parts of the spectrogram,
     ignoring less significant areas.
@@ -43,12 +43,12 @@ def calculate_ssim_with_mask(target_spectrogram, current_spectrogram, threshold=
     target_spectrogram = target_spectrogram.astype(np.float32)
     current_spectrogram = current_spectrogram.astype(np.float32)
 
-    # Generate a mask from the target spectrogram
-    mask = target_spectrogram > threshold
+    # Generate a mask from the spectrograms
+    mask = (current_spectrogram >= threshold) | (target_spectrogram >= threshold)
 
     # Apply mask to both spectrograms
-    masked_target = np.where(mask, target_spectrogram, 0)
-    masked_current = np.where(mask, current_spectrogram, 0)
+    masked_current = current_spectrogram[mask]
+    masked_target = target_spectrogram[mask]
 
     # Calculate SSIM on masked areas
     ssim_value = ssim(masked_target, masked_current, data_range=masked_target.max() - masked_target.min())
@@ -56,7 +56,7 @@ def calculate_ssim_with_mask(target_spectrogram, current_spectrogram, threshold=
     return ssim_value
 
 
-def calculate_weighted_ssim(target_spectrogram, current_spectrogram):
+def weighted_ssim(target_spectrogram, current_spectrogram):
     """
     Calculate a weighted Structural Similarity Index (SSIM) that emphasizes differences in higher energy areas.
 
@@ -104,15 +104,42 @@ def rmse_similarity(current_sample, target_sample):
     return similarity
 
 
+def mse_similarity_masked(current_sample, target_sample, threshold=0.1):
+    """
+    Calculate the similarity between two np arrays using Mean Squared Error (MSE).
+    """
+    mask = (current_sample >= threshold) | (target_sample >= threshold)
+    masked_current = current_sample[mask]
+    masked_target = target_sample[mask]
+
+    mse_value = mse(y_true=masked_target, y_pred=masked_current)
+
+    # Convert MSE to a similarity measure; lower MSE should yield higher similarity
+    similarity = np.exp(-mse_value)  # Using exponential to ensure a positive similarity score
+    return similarity
+
+
+def rmse_similarity_masked(current_sample, target_sample, threshold=0.1):
+    mask = (current_sample >= threshold) | (target_sample >= threshold)
+    masked_current = current_sample[mask]
+    masked_target = target_sample[mask]
+
+    # Ensure there are enough values left after masking
+    if len(masked_current) == 0 or len(masked_target) == 0:
+        return 0
+
+    return rmse_similarity(np.sqrt(masked_current), np.sqrt(masked_target))
+
+
 def time_cost(step_count, factor=0.1):
     return factor * step_count
 
 
 def action_cost(action: np.ndarray, factor: float = 10.0):
-    return factor * np.sum((action) ** 2)
+    return factor * np.sum(action ** 2)
 
 
-def saturation_penalty(synth_params, actions, penalty_amount=10.0):
+def saturation_penalty(synth_params, actions, factor=10.0):
     """
     Calculate a penalty based on the actions that would saturate the synth parameters.
 
@@ -135,6 +162,22 @@ def saturation_penalty(synth_params, actions, penalty_amount=10.0):
     total_overshoot = np.abs(overshoot_below) + np.abs(overshoot_above)
 
     # Calculate the penalty
-    penalty = np.sum(total_overshoot) * penalty_amount
+    penalty = np.sum(total_overshoot) * factor
 
     return penalty
+
+
+def directional_reward_penalty(previous_synth_params, target_synth_params, actions, factor=1.0):
+    # Calculate the initial error between previous synth parameters and target synth parameters
+    initial_error = target_synth_params - previous_synth_params
+
+    # Calculate the new error after taking the action
+    new_error = initial_error - actions
+
+    # Calculate the error reduction (positive if the error is reduced, negative if the error increased)
+    error_reduction = abs(initial_error) - abs(new_error)
+
+    # Calculate the final reward/penalty with the tunable factor
+    final_reward_penalty = np.sum(error_reduction) * factor
+
+    return final_reward_penalty
