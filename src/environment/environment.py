@@ -10,12 +10,12 @@ from src.environment.reward_functions import (
     time_cost,
     action_cost,
     weighted_ssim,
+    saturation_penalty,
     masked_ssim,
     mse_similarity,
     rmse_similarity,
     mse_similarity_masked,
     rmse_similarity_masked,
-    saturation_penalty,
     directional_reward_penalty,
 )
 from src.utils.audio_processor import AudioProcessor
@@ -193,42 +193,39 @@ class Environment:
         return self.synth_host.play_note(note=64, note_duration=self.note_length), random_params
 
     def calculate_state(self):
+        # State: Target spectrogram minus current spectrogram
         # return np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
+
+        # State: Stack the current spectrogram and the target spectrogram
         # return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
+
+        # (Cheat) State: No need for observation network, just return synth parameter error directly
         return self.target_params - self.current_params
 
     def reward_function(self, action):
+        # TODO: WE CAN IMPROVE THE REWARD FUNCTION STILL - BELOW ARE SOME EXAMPLES OF REWARD FUNCTIONS WE'RE NOT USING
+        # - masked_ssim
+        # - rmse_similarity
+        # - rmse_similarity_masked
+        # - directional_reward_penalty
 
-        similarity_score1 = masked_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
-        similarity_score2 = weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
-        similarity_score3 = rmse_similarity_masked(self.current_audio.spectrogram, self.target_audio.spectrogram, threshold=0.8)
-        time_penalty = time_cost(step_count=self.step_count, factor=0.05)
+        similarity_score = weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
+        time_penalty = time_cost(step_count=self.step_count, factor=0.1)
         action_penalty = action_cost(
             action=action,
             factor=10.0
         )
         saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action, factor=1.0)
-        direct_penalty_reward = directional_reward_penalty(
-            previous_synth_params=self.previous_params,
-            target_synth_params=self.target_params,
-            actions=action,
-            factor=10.0
-        )
-        print(f"ssim masked: {similarity_score1}")
-        print(f"ssim weighted: {similarity_score2}")
-        print(f"rmse masked: {similarity_score3}")
 
-        is_done, bonus = self.check_if_done(similarity_score3)
+        is_done, bonus = self.check_if_done(similarity_score)
 
-        # reward = similarity_score * 10 - time_penalty - action_penalty - saturate_penalty + bonus
-        # reward = similarity_score1 + similarity_score2 + direct_penalty_reward - saturate_penalty + bonus
-        reward = 5*((similarity_score2 + similarity_score3)/2)**2 - saturate_penalty - time_penalty*action_penalty + bonus
+        reward = similarity_score ** 2 * 10 - time_penalty - action_penalty - saturate_penalty + bonus
 
         return reward, is_done
 
     def check_if_done(self, similarity_score):
         max_steps = 100
-        if similarity_score >= 0.85:
+        if similarity_score >= 0.9:
             return True, 100  # (max_steps - self.step_count)
 
         if self.step_count >= max_steps:
