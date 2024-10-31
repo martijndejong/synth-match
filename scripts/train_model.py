@@ -32,6 +32,9 @@ output_shape = env.get_output_shape()
 observer_network = build_spectrogram_observer(
     input_shape=input_shape  # (int(SAMPLING_RATE*NOTE_LENGTH), 1)
 )
+# Load weights from pre-trained network
+# observer_network.load_weights('saved_models/observer/observer_network_weights.h5', by_name=True, skip_mismatch=True)
+
 model = ActorCriticAgent(
     observer_network=observer_network,
     action_dim=output_shape,
