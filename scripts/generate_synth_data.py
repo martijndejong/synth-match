@@ -3,11 +3,12 @@ import os
 import h5py
 from src.environment.environment import Environment
 from src.synthesizers.super_simple_synth import SuperSimpleHost
+from tqdm import tqdm
 
 # Set constants
 SAMPLING_RATE = 44100.0
 NOTE_LENGTH = 1.0
-NUM_SAMPLES = 100000  # Adjust as needed
+NUM_SAMPLES = 500000  # Total number of samples generated
 BATCH_SIZE = 1000  # Number of samples per batch
 
 
@@ -68,7 +69,7 @@ def main():
         if NUM_SAMPLES % BATCH_SIZE != 0:
             num_batches += 1  # Include the last partial batch
 
-        for batch_idx in range(num_batches):
+        for batch_idx in tqdm(range(num_batches)):
             start_idx = batch_idx * BATCH_SIZE
             end_idx = min((batch_idx + 1) * BATCH_SIZE, NUM_SAMPLES)
             current_batch_size = end_idx - start_idx
