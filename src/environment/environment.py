@@ -192,15 +192,21 @@ class Environment:
 
         return self.synth_host.play_note(note=64, note_duration=self.note_length), random_params
 
-    def calculate_state(self):
-        # State: Target spectrogram minus current spectrogram
-        # return np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
-
+    def calculate_state(self, form="stacked_spectrogram"):
         # State: Stack the current spectrogram and the target spectrogram
-        return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
+        if form == "stacked_spectrogram":
+            return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
+
+        # State: Target spectrogram minus current spectrogram
+        elif form == "spectrogram_error":
+            return np.expand_dims(self.target_audio.spectrogram - self.current_audio.spectrogram, axis=-1)
 
         # (Cheat) State: No need for observation network, just return synth parameter error directly
-        # return self.target_params - self.current_params
+        elif form == "synth_param_error":
+            return self.target_params - self.current_params
+
+        else:
+            raise ValueError("form must be either 'stacked_spectrogram', 'spectrogram_error', or 'synth_param_error'")
 
     def reward_function(self, action):
         # TODO: WE CAN IMPROVE THE REWARD FUNCTION STILL - BELOW ARE SOME EXAMPLES OF REWARD FUNCTIONS WE'RE NOT USING
