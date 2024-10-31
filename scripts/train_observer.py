@@ -96,7 +96,7 @@ def main():
     # Set up the model checkpoint callback to save the model only when validation loss improves
     checkpoint_callback = ModelCheckpoint(
         filepath=model_path,
-        save_weights_only=False,
+        save_weights_only=True,
         monitor='val_loss',
         mode='min',
         save_best_only=True,
