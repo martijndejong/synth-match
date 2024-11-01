@@ -16,6 +16,7 @@ class ActorCriticAgent(tf.keras.Model):
 
         # Actor sub-model
         self.actor = models.Sequential([
+            layers.InputLayer(input_shape=(128 + action_dim,)),  # TODO: hardcoded 128 must be aligned with observer
             layers.Dense(hidden_dim, activation='relu'),
             layers.Dense(hidden_dim, activation='relu'),
             layers.Dense(action_dim, activation='tanh')  # For continuous actions
@@ -23,6 +24,7 @@ class ActorCriticAgent(tf.keras.Model):
 
         # Critic sub-model
         self.critic = models.Sequential([
+            layers.InputLayer(input_shape=(128 + action_dim * 2,)),  # TODO: hardcoded 128 must be aligned with observer
             layers.Dense(hidden_dim, activation='relu'),
             layers.Dense(hidden_dim, activation='relu'),
             layers.Dense(1, activation='linear')
@@ -106,3 +108,12 @@ class ActorCriticAgent(tf.keras.Model):
         synth_params = tf.expand_dims(synth_params, 0)
         action, _ = self(state, synth_params, training=False)
         return action[0].numpy()
+
+    # Methods to save and load network for pretraining
+    def save_actor_critic_weights(self, actor_path, critic_path):
+        self.actor.save_weights(actor_path)
+        self.critic.save_weights(critic_path)
+
+    def load_actor_critic_weights(self, actor_path, critic_path):
+        self.actor.load_weights(actor_path)
+        self.critic.load_weights(critic_path)
