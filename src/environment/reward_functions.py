@@ -181,3 +181,14 @@ def directional_reward_penalty(previous_synth_params, target_synth_params, actio
     final_reward_penalty = np.sum(error_reduction) * factor
 
     return final_reward_penalty
+
+
+def euclidean_distance(current_synth_params, target_synth_params):
+    # Compute Euclidean distance
+    # distance minimum: 0, maximum: num of params
+    distance = np.linalg.norm(target_synth_params - current_synth_params)
+
+    # Compute reward (negative distance)
+    reward = 1 - distance
+
+    return reward
