@@ -1,5 +1,6 @@
 import numpy as np
 import os
+import matplotlib.pyplot as plt
 
 # Import environment and synthesizer
 from src.environment.environment import Environment
@@ -13,6 +14,8 @@ from src.agents.actor_critic_agent import ActorCriticAgent
 
 # Import the replay buffer
 from src.utils.replay_buffer import ReplayBuffer
+
+from tqdm import tqdm
 
 
 def main():
@@ -28,7 +31,7 @@ def main():
         synth_host=host,
         note_length=NOTE_LENGTH,
         control_mode="incremental",
-        render_mode=True,
+        render_mode=False,
         sampling_freq=SAMPLING_RATE,
         default_state_form="synth_param_error"  # Return parameter error as state
     )
@@ -59,9 +62,11 @@ def main():
 
     num_episodes = 500  # Number of episodes to train
 
-    rewards_mem = []  # For logging rewards
+    rewards_mem = []      # For logging total rewards per episode
+    actor_losses = []     # For logging actor losses
+    critic_losses = []    # For logging critic losses
 
-    for episode in range(num_episodes):
+    for episode in tqdm(range(num_episodes)):
         state = env.reset()
         synth_params = env.get_synth_params()
         done = False
@@ -81,12 +86,15 @@ def main():
 
             # If enough samples are available in memory, sample a batch and perform a training step
             if len(replay_memory) > batch_size:
-                print("Training step")
+                # print("Training step")
                 sampled_experiences = replay_memory.sample(batch_size)
                 states, synth_params_batch, actions, rewards, next_states, next_synth_params_batch, dones = map(
                     np.array, zip(*sampled_experiences))
-                agent.train_step(
+                loss = agent.train_step(
                     (states, synth_params_batch, actions, rewards, next_states, next_synth_params_batch, dones))
+                # Collect losses
+                actor_losses.append(loss['actor_loss'])
+                critic_losses.append(loss['critic_loss'])
 
             state = next_state
             synth_params = next_synth_params
@@ -104,6 +112,27 @@ def main():
     agent.save_actor_critic_weights(actor_save_path, critic_save_path)
     print(f"Actor weights saved to {actor_save_path}")
     print(f"Critic weights saved to {critic_save_path}")
+
+    # Plotting
+    # Plot total rewards per episode
+    plt.figure()
+    plt.plot(rewards_mem)
+    plt.title('Total Reward per Episode')
+    plt.xlabel('Episode')
+    plt.ylabel('Total Reward')
+    plt.savefig(os.path.join(save_dir, 'rewards_per_episode.png'))
+    plt.show()
+
+    # Plot actor and critic losses
+    plt.figure()
+    plt.plot(actor_losses, label='Actor Loss')
+    plt.plot(critic_losses, label='Critic Loss')
+    plt.title('Losses over Training Steps')
+    plt.xlabel('Training Step')
+    plt.ylabel('Loss')
+    plt.legend()
+    plt.savefig(os.path.join(save_dir, 'losses.png'))
+    plt.show()
 
 
 if __name__ == "__main__":
