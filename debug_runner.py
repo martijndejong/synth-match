@@ -1,1 +1,1 @@
-import scripts.train_model
+import scripts.train_end_to_end
