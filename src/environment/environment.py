@@ -11,6 +11,7 @@ from src.environment.reward_functions import (
     action_cost,
     weighted_ssim,
     saturation_penalty,
+    euclidean_distance,
     masked_ssim,
     mse_similarity,
     rmse_similarity,
@@ -24,13 +25,14 @@ from src.environment.render_functions import initialize_plots, update_plots
 
 class Environment:
     def __init__(self, synth_host=None, control_mode="absolute", render_mode=None, note_length=1.0,
-                 sampling_freq=44100.0):
+                 sampling_freq=44100.0, default_state_form="stacked_spectrogram"):
         self.synth_host = synth_host
         self.synthesizer = self.synth_host.vst
         self.control_mode = control_mode
         self.render_mode = render_mode
         self.note_length = note_length
         self.sampling_freq = sampling_freq
+        self.default_state_form = default_state_form
 
         self.current_audio = AudioProcessor(audio_sample=None, sampling_freq=self.sampling_freq)
         self.target_audio = AudioProcessor(audio_sample=None, sampling_freq=self.sampling_freq)
@@ -97,7 +99,7 @@ class Environment:
         reward: A numerical value indicating the reward obtained from taking the action
         done: boolean indicating whether the episode has ended
         """
-        print(f"DEBUG ACTIONS: {action}")
+        # print(f"DEBUG ACTIONS: {action}")
         # Environment is either controlled by incremental changes to synth parameters, or by directly setting them
         self.previous_params = self.get_synth_params()  # store synth params before taking step
         if self.control_mode == "incremental":
@@ -129,9 +131,6 @@ class Environment:
         self.state = state
         self.last_reward = reward
         self.total_reward += reward
-
-        if done:
-            print(f"DEBUG FINAL PARAMS:{self.get_synth_params()}")
 
         if self.render_mode:
             self.render()
@@ -192,7 +191,9 @@ class Environment:
 
         return self.synth_host.play_note(note=64, note_duration=self.note_length), random_params
 
-    def calculate_state(self, form="stacked_spectrogram"):
+    def calculate_state(self, form=None):
+        form = form if form else self.default_state_form
+
         # State: Stack the current spectrogram and the target spectrogram
         if form == "stacked_spectrogram":
             return np.stack((self.current_audio.spectrogram, self.target_audio.spectrogram), axis=-1)
@@ -222,10 +223,12 @@ class Environment:
             factor=10.0
         )
         saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action, factor=1.0)
+        parameter_distance = euclidean_distance(self.current_params, self.target_params)
 
         is_done, bonus = self.check_if_done(similarity_score)
 
-        reward = similarity_score ** 2 * 10 - time_penalty - action_penalty - saturate_penalty + bonus
+        # reward = similarity_score ** 2 * 10 + parameter_distance - time_penalty - action_penalty - saturate_penalty + bonus
+        reward = 10 * parameter_distance + 5 * similarity_score - time_penalty - action_penalty + bonus
 
         return reward, is_done
 
