@@ -28,19 +28,28 @@ gamma = 0.99  # Discount factor for future rewards
 input_shape = env.get_input_shape()
 output_shape = env.get_output_shape()
 
-# Create Observer network and Actor Critic agent network
+# Create the observer network
 observer_network = build_spectrogram_observer(
-    input_shape=input_shape  # (int(SAMPLING_RATE*NOTE_LENGTH), 1)
+    input_shape=input_shape,
+    num_params=None,
+    include_output_layer=False  # Exclude the output layer used during observer pre-training
 )
-# Load weights from pre-trained network
-# observer_network.load_weights('saved_models/observer/observer_network_weights.h5', by_name=True, skip_mismatch=True)
+# Load weights from the pre-trained observer network
+observer_weights_path = '../saved_models/observer/SuperSimpleSynth.h5'
+observer_network.load_weights(observer_weights_path, by_name=True, skip_mismatch=True)
 
-model = ActorCriticAgent(
+# Create the agent
+agent = ActorCriticAgent(
     observer_network=observer_network,
     action_dim=output_shape,
     hidden_dim=hidden_dim,
     gamma=gamma
 )
+
+# Load pre-trained actor and critic weights
+actor_weights_path = '../saved_models/agent/actor_weights.h5'
+critic_weights_path = '../saved_models/agent/critic_weights.h5'
+agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
 
 # Initialize replay memory
 replay_memory = ReplayBuffer(capacity=10000)
@@ -56,7 +65,7 @@ for episode in range(num_episodes):
     episode_reward = 0
 
     while not done:
-        action = model.act(state, synth_params)
+        action = agent.act(state, synth_params)
         next_state, reward, done = env.step(action)
         next_synth_params = env.get_synth_params()
         episode_reward += reward
@@ -66,10 +75,10 @@ for episode in range(num_episodes):
 
         # If enough samples are available in memory, sample a batch and perform a training step
         if len(replay_memory) > batch_size:
-            print("Training step")
+            # print("Training step")
             sampled_experiences = replay_memory.sample(batch_size)
             states, synth_params, actions, rewards, next_states, next_synth_paramss, dones = map(np.array, zip(*sampled_experiences))
-            model.train_step((states, synth_params, actions, rewards, next_states, next_synth_paramss, dones))
+            agent.train_step((states, synth_params, actions, rewards, next_states, next_synth_paramss, dones))
 
         state = next_state
         synth_params = next_synth_params
