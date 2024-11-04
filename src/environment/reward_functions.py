@@ -189,6 +189,6 @@ def euclidean_distance(current_synth_params, target_synth_params):
     distance = np.linalg.norm(target_synth_params - current_synth_params)
 
     # Compute reward (negative distance)
-    reward = 1 - distance
+    reward = -distance**2
 
     return reward

@@ -22,7 +22,7 @@ def build_spectrogram_observer(input_shape=(128, 256, 2), num_params=None, inclu
     x = Flatten()(x)
     x = Dense(256, activation='relu')(x)
     x = Dropout(0.5)(x)
-    features = Dense(128, activation='relu')(x)  # This is the feature layer
+    features = Dense(64, activation='relu')(x)  # This is the feature layer - ALIGN SIZE WITH AGENT INPUT
 
     if include_output_layer and num_params is not None:
         # Output layer for predicting parameter error, used for pre-training

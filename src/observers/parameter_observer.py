@@ -15,7 +15,7 @@ def build_parameter_observer(input_shape=(2,)):
     # model = Model(inputs=inputs, outputs=inputs)
 
     # Bring output to higher dimensionality to simulate feature dimensionality of actual observer network
-    outputs = Dense(128, activation='relu')(inputs)
+    outputs = Dense(64, activation='relu')(inputs)
     model = Model(inputs=inputs, outputs=outputs)
     return model
 

@@ -67,7 +67,7 @@ class Environment:
         rnd_state = self.reset(increment_episode=False)
         return rnd_state.shape
 
-    def reset(self, increment_episode=True):
+    def reset(self, increment_episode=True, start_params=np.array([])):
         """
         Resets the environment to a (random) initial state and returns the initial observation.
         This function is typically called at the beginning of each new episode
@@ -79,8 +79,14 @@ class Environment:
         self.step_count = 0
         self.total_reward = 0
         self.target_sound, self.target_params = self.play_sound_random_params()
-        self.current_sound, self.current_params = self.play_sound_random_params()
 
+        # Either start episode with random parameters, or set parameters
+        if start_params.size == 0:
+            self.current_sound, self.current_params = self.play_sound_random_params()
+        else:
+            self.current_sound, self.current_params = self.play_sound_set_params(start_params)
+
+        # Update the sample in our audio preprocessor
         self.target_audio.update_sample(audio_sample=self.target_sound)
         self.current_audio.update_sample(audio_sample=self.current_sound)
 
@@ -191,6 +197,12 @@ class Environment:
 
         return self.synth_host.play_note(note=64, note_duration=self.note_length), random_params
 
+    def play_sound_set_params(self, params):
+        # Set parameters and play a sound
+        self.set_synth_params(parameters=params)
+
+        return self.synth_host.play_note(note=64, note_duration=self.note_length), params
+
     def calculate_state(self, form=None):
         form = form if form else self.default_state_form
 
@@ -217,7 +229,7 @@ class Environment:
         # - directional_reward_penalty
 
         similarity_score = weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
-        time_penalty = time_cost(step_count=self.step_count, factor=0.1)
+        time_penalty = time_cost(step_count=self.step_count, factor=0.01)
         action_penalty = action_cost(
             action=action,
             factor=10.0
@@ -228,17 +240,18 @@ class Environment:
         is_done, bonus = self.check_if_done(similarity_score)
 
         # reward = similarity_score ** 2 * 10 + parameter_distance - time_penalty - action_penalty - saturate_penalty + bonus
-        reward = 10 * parameter_distance + 5 * similarity_score - time_penalty - action_penalty + bonus
+        # reward = 2 * parameter_distance + 2 * similarity_score - time_penalty - action_penalty - saturate_penalty + bonus
+        reward = parameter_distance - saturate_penalty + bonus
 
         return reward, is_done
 
     def check_if_done(self, similarity_score):
         max_steps = 100
         if similarity_score >= 0.9:
-            return True, 100  # (max_steps - self.step_count)
+            return True, 100 * (max_steps - self.step_count) / max_steps
 
         if self.step_count >= max_steps:
-            return True, -100
+            return True, 0  # -100
 
         return False, 0
 
