@@ -5,10 +5,18 @@ from pyvst import SimpleHost
 
 # Import observer and actor network
 from src.observers import build_spectrogram_observer
-from src.agents import ActorCriticAgent
+from src.agents import TD3Agent
 
 from src.utils.replay_buffer import ReplayBuffer
 import numpy as np
+
+import os
+
+# Get the current script's directory
+script_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Construct the path to the '../saved_models' directory
+saved_models_dir = os.path.join(script_dir, '..', 'saved_models')
 
 
 # Set constants
@@ -22,8 +30,12 @@ host = SuperSimpleHost(sample_rate=SAMPLING_RATE)
 # Create environment object and pass synthesizer object
 env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=True, sampling_freq=SAMPLING_RATE)
 
-hidden_dim = 256  # Can be adjusted
-gamma = 0.99  # Discount factor for future rewards
+hidden_dim = 64
+gamma = 0.9
+tau = 0.005
+policy_noise = 0.3
+noise_clip = 0.5
+policy_delay = 4
 
 input_shape = env.get_input_shape()
 output_shape = env.get_output_shape()
@@ -35,20 +47,24 @@ observer_network = build_spectrogram_observer(
     include_output_layer=False  # Exclude the output layer used during observer pre-training
 )
 # Load weights from the pre-trained observer network
-observer_weights_path = '../saved_models/observer/SuperSimpleSynth.h5'
+observer_weights_path = f'{saved_models_dir}/observer/SuperSimpleSynth.h5'
 observer_network.load_weights(observer_weights_path, by_name=True, skip_mismatch=True)
 
-# Create the agent
-agent = ActorCriticAgent(
+# Create the Actor-Critic agent
+agent = TD3Agent(
     observer_network=observer_network,
     action_dim=output_shape,
     hidden_dim=hidden_dim,
-    gamma=gamma
+    gamma=gamma,
+    tau=tau,
+    policy_noise=policy_noise,
+    noise_clip=noise_clip,
+    policy_delay=policy_delay
 )
 
 # Load pre-trained actor and critic weights
-actor_weights_path = '../saved_models/agent/actor_weights.h5'
-critic_weights_path = '../saved_models/agent/critic_weights.h5'
+actor_weights_path = f'{saved_models_dir}/agent/actor_weights.h5'
+critic_weights_path = f'{saved_models_dir}/agent/critic_weights.h5'
 agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
 
 # Initialize replay memory
