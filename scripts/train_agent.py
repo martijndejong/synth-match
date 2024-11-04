@@ -10,7 +10,7 @@ from src.synthesizers.super_simple_synth import SuperSimpleHost
 from src.observers.parameter_observer import build_parameter_observer
 
 # Import the agent network
-from src.agents.actor_critic_agent import ActorCriticAgent
+from src.agents import TD3Agent
 
 # Import the replay buffer
 from src.utils.replay_buffer import ReplayBuffer
@@ -36,24 +36,30 @@ def main():
         default_state_form="synth_param_error"  # Return parameter error as state
     )
 
-    hidden_dim = 256  # Can be adjusted
-    gamma = 0.99  # Discount factor for future rewards
+    hidden_dim = 64
+    gamma = 0.9
+    tau = 0.005
+    policy_noise = 0.3
+    noise_clip = 0.5
+    policy_delay = 3
 
     # Get input and output shapes
     input_shape = env.get_input_shape()  # Should be (num_params,)
     output_shape = env.get_output_shape()  # Number of synthesizer parameters
 
-    num_params = output_shape  # Number of synthesizer parameters
-
     # Create the dummy observer network
     observer_network = build_parameter_observer(input_shape=input_shape)
 
     # Create the Actor-Critic agent
-    agent = ActorCriticAgent(
+    agent = TD3Agent(
         observer_network=observer_network,
         action_dim=output_shape,
         hidden_dim=hidden_dim,
-        gamma=gamma
+        gamma=gamma,
+        tau=tau,
+        policy_noise=policy_noise,
+        noise_clip=noise_clip,
+        policy_delay=policy_delay
     )
 
     # Initialize replay memory
