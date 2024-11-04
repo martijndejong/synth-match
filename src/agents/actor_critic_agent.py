@@ -87,17 +87,18 @@ class ActorCriticAgent(tf.keras.Model):
             critic_values_for_actor_loss = tf.squeeze(critic_values_for_actor_loss, axis=1)
             actor_loss = -tf.reduce_mean(critic_values_for_actor_loss)
 
-        # Compute gradients for both actor and critic including the observer network
+        # Compute gradients for both Actor and Critic
+        # Update Observer Network only with Critic Loss to avoid Gradient Interference
         critic_grad = tape.gradient(critic_loss,
                                     self.critic.trainable_variables + self.observer_network.trainable_variables)
         actor_grad = tape.gradient(actor_loss,
-                                   self.actor.trainable_variables + self.observer_network.trainable_variables)
+                                   self.actor.trainable_variables)
 
         # Apply gradients
         self.critic_optimizer.apply_gradients(
             zip(critic_grad, self.critic.trainable_variables + self.observer_network.trainable_variables))
         self.actor_optimizer.apply_gradients(
-            zip(actor_grad, self.actor.trainable_variables + self.observer_network.trainable_variables))
+            zip(actor_grad, self.actor.trainable_variables))
 
         del tape  # Free tape memory
 
