@@ -11,6 +11,9 @@ from src.utils.replay_buffer import ReplayBuffer
 import numpy as np
 
 import os
+import matplotlib.pyplot as plt
+
+from tqdm import tqdm
 
 # Get the current script's directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -28,9 +31,9 @@ host = SuperSimpleHost(sample_rate=SAMPLING_RATE)
 # host = SimpleHost("/mnt/c/github/synth-match/amsynth_vst.so", sample_rate=SAMPLING_RATE)
 
 # Create environment object and pass synthesizer object
-env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=True, sampling_freq=SAMPLING_RATE)
+env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=False, sampling_freq=SAMPLING_RATE)
 
-hidden_dim = 64
+hidden_dim = 128
 gamma = 0.9
 tau = 0.005
 policy_noise = 0.3
@@ -43,7 +46,6 @@ output_shape = env.get_output_shape()
 # Create the observer network
 observer_network = build_spectrogram_observer(
     input_shape=input_shape,
-    num_params=None,
     include_output_layer=False  # Exclude the output layer used during observer pre-training
 )
 # Load weights from the pre-trained observer network
@@ -62,6 +64,9 @@ agent = TD3Agent(
     policy_delay=policy_delay
 )
 
+# Freeze the observer network
+agent.observer_network.trainable = False
+
 # Load pre-trained actor and critic weights
 actor_weights_path = f'{saved_models_dir}/agent/actor_weights.h5'
 critic_weights_path = f'{saved_models_dir}/agent/critic_weights.h5'
@@ -71,10 +76,10 @@ agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
 replay_memory = ReplayBuffer(capacity=10000)
 batch_size = 64  # Batch size for training from replay memory
 
-num_episodes = 500  # Number of episodes to train
+num_episodes = 1000  # Number of episodes to train
 
 rewards_mem = []  # TODO: replace by more systematic logging system in utility functions
-for episode in range(num_episodes):
+for episode in tqdm(range(num_episodes)):
     state = env.reset()
     synth_params = env.get_synth_params()
     done = False
@@ -102,3 +107,14 @@ for episode in range(num_episodes):
     print(f'Episode {episode + 1}, Total Reward: {episode_reward:.2f}')
     rewards_mem.append(episode_reward)
 print(rewards_mem)
+
+# Plotting
+# Plot total rewards per episode
+plt.figure()
+plt.plot(rewards_mem)
+plt.title('Total Reward per Episode')
+plt.xlabel('Episode')
+plt.ylabel('Total Reward')
+save_dir = os.path.join('..', 'saved_models', 'end_to_end')
+plt.savefig(os.path.join(save_dir, 'rewards_per_episode.png'))
+plt.show()
