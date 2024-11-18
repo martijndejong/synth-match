@@ -36,7 +36,7 @@ def main():
         default_state_form="synth_param_error"  # Return parameter error as state
     )
 
-    hidden_dim = 64
+    hidden_dim = 128
     gamma = 0.9
     tau = 0.005
     policy_noise = 0.3
