@@ -1,6 +1,6 @@
 # Import environment and synthesizer
 from src.environment.environment import Environment
-from src.synthesizers.super_simple_synth import SuperSimpleHost
+from src.synthesizers import Host, SimpleSynth
 from pyvst import SimpleHost
 
 # Import observer and actor network
@@ -24,14 +24,14 @@ saved_models_dir = os.path.join(script_dir, '..', 'saved_models')
 
 # Set constants
 SAMPLING_RATE = 44100.0
-NOTE_LENGTH = 1.0
+NOTE_LENGTH = 0.5
 
 # Create synthesizer object
-host = SuperSimpleHost(sample_rate=SAMPLING_RATE)
+host = Host(synthesizer=SimpleSynth, sample_rate=SAMPLING_RATE)
 # host = SimpleHost("/mnt/c/github/synth-match/amsynth_vst.so", sample_rate=SAMPLING_RATE)
 
 # Create environment object and pass synthesizer object
-env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=False, sampling_freq=SAMPLING_RATE)
+env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=True, sampling_freq=SAMPLING_RATE)
 
 hidden_dim = 128
 gamma = 0.9
@@ -49,7 +49,7 @@ observer_network = build_spectrogram_observer(
     include_output_layer=False  # Exclude the output layer used during observer pre-training
 )
 # Load weights from the pre-trained observer network
-observer_weights_path = f'{saved_models_dir}/observer/SuperSimpleSynth.h5'
+observer_weights_path = f'{saved_models_dir}/observer/SimpleSynth.h5'
 observer_network.load_weights(observer_weights_path, by_name=True, skip_mismatch=True)
 
 # Create the Actor-Critic agent
@@ -67,10 +67,10 @@ agent = TD3Agent(
 # Freeze the observer network
 agent.observer_network.trainable = False
 
-# Load pre-trained actor and critic weights
-actor_weights_path = f'{saved_models_dir}/agent/actor_weights.h5'
-critic_weights_path = f'{saved_models_dir}/agent/critic_weights.h5'
-agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
+# # Load pre-trained actor and critic weights
+# actor_weights_path = f'{saved_models_dir}/agent/actor_weights.h5'
+# critic_weights_path = f'{saved_models_dir}/agent/critic_weights.h5'
+# agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
 
 # Initialize replay memory
 replay_memory = ReplayBuffer(capacity=10000)
@@ -115,6 +115,7 @@ plt.plot(rewards_mem)
 plt.title('Total Reward per Episode')
 plt.xlabel('Episode')
 plt.ylabel('Total Reward')
-save_dir = os.path.join('..', 'saved_models', 'end_to_end')
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's directory
+save_dir = os.path.join(script_dir, '..', 'saved_models', 'end_to_end')
 plt.savefig(os.path.join(save_dir, 'rewards_per_episode.png'))
 plt.show()
