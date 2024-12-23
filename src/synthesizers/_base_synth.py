@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 import numpy as np
 
 
-class Synthesizer(ABC):
+class BaseSynthesizer(ABC):
     def __init__(self, sample_rate=44100.):
         self.sample_rate = sample_rate
         pass  # Initialize shared attributes or configurations
@@ -56,3 +56,40 @@ class Synthesizer(ABC):
         :return: integer value representing number of parameters
         """
         pass
+
+    @staticmethod
+    def _note_to_freq(note):
+        # Musical notes with their corresponding number of half steps from A4
+        notes = {
+            'C': -9, 'C#': -8, 'Db': -8, 'D': -7, 'D#': -6, 'Eb': -6, 'E': -5,
+            'F': -4, 'F#': -3, 'Gb': -3, 'G': -2, 'G#': -1, 'Ab': -1, 'A': 0,
+            'A#': 1, 'Bb': 1, 'B': 2
+        }
+
+        # Extract the note and the octave from the input
+        note_letter = note[:-1]
+        octave = int(note[-1])
+
+        if note_letter not in notes:
+            raise ValueError("Invalid note name")
+
+        # Calculate the number of half steps from A4
+        n = notes[note_letter] + (octave - 4) * 12
+
+        # Calculate the frequency
+        frequency = 2 ** (n / 12) * 440
+        return frequency
+
+    @staticmethod
+    def _note_number_to_freq(note_number):
+        """
+        Convert a MIDI note number to its corresponding frequency in Hz.
+        With 69 corresponding to A4 (440 Hz)
+
+        Parameters:
+            note_number (int): The MIDI note number.
+
+        Returns:
+            float: The frequency of the note in Hz.
+        """
+        return 440.0 * (2 ** ((note_number - 69) / 12.0))
