@@ -76,4 +76,4 @@ def update_plots(env):
         title="Observed State Spectrogram"
     )
     plt.draw()
-    plt.pause(0.01)
+    plt.pause(0.001)
