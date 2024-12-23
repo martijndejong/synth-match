@@ -2,12 +2,12 @@ import numpy as np
 import os
 import h5py
 from src.environment.environment import Environment
-from src.synthesizers.super_simple_synth import SuperSimpleHost
+from src.synthesizers import Host, SimpleSynth
 from tqdm import tqdm
 
 # Set constants
 SAMPLING_RATE = 44100.0
-NOTE_LENGTH = 1.0
+NOTE_LENGTH = 0.5
 NUM_SAMPLES = 500000  # Total number of samples generated
 BATCH_SIZE = 1000  # Number of samples per batch
 
@@ -17,7 +17,7 @@ def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Create synthesizer object
-    host = SuperSimpleHost(sample_rate=SAMPLING_RATE)
+    host = Host(synthesizer=SimpleSynth, sample_rate=SAMPLING_RATE)
 
     # Create environment object and pass synthesizer object
     env = Environment(
@@ -43,7 +43,7 @@ def main():
     os.makedirs(data_dir, exist_ok=True)
 
     # Create HDF5 file
-    h5_path = os.path.join(data_dir, 'SuperSimpleSynth.h5')
+    h5_path = os.path.join(data_dir, 'SimpleSynth.h5')
     with h5py.File(h5_path, 'w') as h5f:
         # Create datasets with appropriate shapes
         spectrograms_ds = h5f.create_dataset(
