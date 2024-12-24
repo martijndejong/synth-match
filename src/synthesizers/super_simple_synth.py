@@ -1,16 +1,9 @@
-from src.synthesizers._base_synth import Synthesizer
+from src.synthesizers._base_synth import BaseSynthesizer
 from src.utils.math import linear_interp
 import numpy as np
-# from dataclasses import dataclass, fields
 
-class SuperSimpleHost():
-    def __init__(self, sample_rate=44100.) -> None:
-        self.vst = SuperSimpleSynth(sample_rate=sample_rate)
 
-    def play_note(self, note, note_duration):
-        return self.vst.play_note(note=note, duration=note_duration)
-
-class SuperSimpleSynth(Synthesizer):
+class SuperSimpleSynth(BaseSynthesizer):
     def __init__(self, sample_rate=48000.):
         super().__init__(sample_rate)
         # self.SP = SynthParameters(
@@ -40,9 +33,9 @@ class SuperSimpleSynth(Synthesizer):
     def play_note(self, note, duration):
         # Convert note to frequency
         if type(note) == str:
-            freq = _note_to_freq(note)
+            freq = BaseSynthesizer._note_to_freq(note)
         elif type(note) == int:
-            freq = _note_number_to_freq(note) 
+            freq = BaseSynthesizer._note_number_to_freq(note)
         else:
             TypeError("Note should be either string (e.g., 'C4'), or int (e.g., 60)")
 
@@ -82,46 +75,3 @@ class SuperSimpleSynth(Synthesizer):
     @property
     def num_params(self):
         return len(self.param_values)
-
-
-def _note_to_freq(note):
-    # Musical notes with their corresponding number of half steps from A4
-    notes = {
-        'C': -9, 'C#': -8, 'Db': -8, 'D': -7, 'D#': -6, 'Eb': -6, 'E': -5,
-        'F': -4, 'F#': -3, 'Gb': -3, 'G': -2, 'G#': -1, 'Ab': -1, 'A': 0,
-        'A#': 1, 'Bb': 1, 'B': 2
-    }
-
-    # Extract the note and the octave from the input
-    note_letter = note[:-1]
-    octave = int(note[-1])
-
-    if note_letter not in notes:
-        raise ValueError("Invalid note name")
-
-    # Calculate the number of half steps from A4
-    n = notes[note_letter] + (octave - 4) * 12
-
-    # Calculate the frequency
-    frequency = 2 ** (n / 12) * 440
-    return frequency
-
-def _note_number_to_freq(note_number):
-    """
-    Convert a MIDI note number to its corresponding frequency in Hz.
-    With 69 corresponding to A4 (440 Hz)
-    
-    Parameters:
-        note_number (int): The MIDI note number.
-        
-    Returns:
-        float: The frequency of the note in Hz.
-    """
-    return 440.0 * (2 ** ((note_number - 69) / 12.0))
-
-
-# @dataclass
-# class SynthParameters:
-#     amp: float
-#     mod_freq: float
-#     mod_amp: float

@@ -249,7 +249,8 @@ class Environment:
         max_steps = 100
         # if similarity_score >= 0.9:
         # print(similarity_score)
-        if similarity_score >= -0.01:
+        # similarity_score (= euclidean_stance (inherently squared)) >= -0.01 worked well with SuperSimpleSynth
+        if similarity_score >= -0.1:
             return True, 100 * (max_steps - self.step_count) / max_steps
 
         if self.step_count >= max_steps:

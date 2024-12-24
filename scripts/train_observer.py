@@ -20,7 +20,7 @@ def main():
     data_dir = os.path.join(script_dir, '..', 'data', 'labeled_spectrograms')
 
     # Path to HDF5 file
-    h5_path = os.path.join(data_dir, 'SuperSimpleSynth.h5')
+    h5_path = os.path.join(data_dir, 'SimpleSynth.h5')
 
     # Open HDF5 file
     h5f = h5py.File(h5_path, 'r')
@@ -91,7 +91,7 @@ def main():
     # Directory to save the observer network weights
     save_dir = os.path.join(script_dir, '..', 'saved_models', 'observer')
     os.makedirs(save_dir, exist_ok=True)
-    model_path = os.path.join(save_dir, 'SuperSimpleSynth.h5')
+    model_path = os.path.join(save_dir, 'SimpleSynth.h5')
 
     # Set up the model checkpoint callback to save the model only when validation loss improves
     checkpoint_callback = ModelCheckpoint(
