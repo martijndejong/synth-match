@@ -14,6 +14,7 @@ import os
 import matplotlib.pyplot as plt
 
 from tqdm import tqdm
+import time
 
 # Get the current script's directory
 script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -77,6 +78,7 @@ replay_memory = ReplayBuffer(capacity=10000)
 batch_size = 64  # Batch size for training from replay memory
 
 num_episodes = 1000  # Number of episodes to train
+start_time = time.time() # Initialize timer
 
 rewards_mem = []  # TODO: replace by more systematic logging system in utility functions
 for episode in tqdm(range(num_episodes)):
@@ -106,6 +108,12 @@ for episode in tqdm(range(num_episodes)):
 
     print(f'Episode {episode + 1}, Total Reward: {episode_reward:.2f}')
     rewards_mem.append(episode_reward)
+
+    # Log time every 10 episodes
+    if episode % 10 == 0:
+        time_elapsed = time.time() - start_time
+        print(f"Episode {episode}: Time elapsed = {time_elapsed:.2f} seconds")
+
 print(rewards_mem)
 
 # Plotting
