@@ -47,6 +47,7 @@ class TD3Agent(tf.keras.Model):
         # Optimizers
         self.actor_optimizer = optimizers.Adam(learning_rate=1e-4)
         self.critic_optimizer = optimizers.Adam(learning_rate=1e-3)
+        self.observer_optimizer = optimizers.Adam(learning_rate=1e-6)  # Super slow learning for pre-trained observer
 
     def build_actor(self):
         model = models.Sequential([
@@ -144,9 +145,16 @@ class TD3Agent(tf.keras.Model):
             critic_loss = critic_loss1 + critic_loss2
 
         # Compute and apply gradients for critics
-        critic_vars = self.critic_1.trainable_variables + self.critic_2.trainable_variables + self.observer_network.trainable_variables
-        critic_grads = tape.gradient(critic_loss, critic_vars)
+        # Observer network is updated in critic learning step
+        critic_vars = self.critic_1.trainable_variables + self.critic_2.trainable_variables
+        observer_vars = self.observer_network.trainable_variables
+        # Calculate gradient for critic and observer, then split and apply separately
+        critic_grads_and_obs = tape.gradient(critic_loss, critic_vars + observer_vars)
+        critic_grads = critic_grads_and_obs[:len(critic_vars)]
+        observer_grads = critic_grads_and_obs[len(critic_vars):]
+
         self.critic_optimizer.apply_gradients(zip(critic_grads, critic_vars))
+        self.observer_optimizer.apply_gradients(zip(observer_grads, observer_vars))
 
         # Delayed policy updates
         actor_loss = 0.0  # Initialize actor_loss
