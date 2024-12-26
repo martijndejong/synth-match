@@ -34,12 +34,12 @@ host = Host(synthesizer=SimpleSynth, sample_rate=SAMPLING_RATE)
 # Create environment object and pass synthesizer object
 env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=True, sampling_freq=SAMPLING_RATE)
 
-hidden_dim = 128
+hidden_dim = 256
 gamma = 0.9
 tau = 0.005
-policy_noise = 0.3
+policy_noise = 0.2
 noise_clip = 0.5
-policy_delay = 4
+policy_delay = 2
 
 input_shape = env.get_input_shape()
 output_shape = env.get_output_shape()
@@ -74,11 +74,11 @@ agent.observer_network.trainable = False
 # agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
 
 # Initialize replay memory
-replay_memory = ReplayBuffer(capacity=10000)
-batch_size = 64  # Batch size for training from replay memory
+replay_memory = ReplayBuffer(capacity=int(1e5))
+batch_size = 128  # Batch size for training from replay memory
 
-num_episodes = 1000  # Number of episodes to train
-start_time = time.time() # Initialize timer
+num_episodes = 500  # Number of episodes to train
+start_time = time.time()  # Initialize timer
 
 rewards_mem = []  # TODO: replace by more systematic logging system in utility functions
 for episode in tqdm(range(num_episodes)):
@@ -116,6 +116,18 @@ for episode in tqdm(range(num_episodes)):
 
 print(rewards_mem)
 
+# Closing and saving results
+script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's directory
+save_dir = os.path.join(script_dir, '..', 'saved_models', 'end_to_end')
+os.makedirs(save_dir, exist_ok=True)
+
+# Save model weights
+actor_save_path = os.path.join(save_dir, 'actor_weights.h5')
+critic_save_path = os.path.join(save_dir, 'critic_weights.h5')
+agent.save_actor_critic_weights(actor_save_path, critic_save_path)
+print(f"Actor weights saved to {actor_save_path}")
+print(f"Critic weights saved to {critic_save_path}")
+
 # Plotting
 # Plot total rewards per episode
 plt.figure()
@@ -123,7 +135,5 @@ plt.plot(rewards_mem)
 plt.title('Total Reward per Episode')
 plt.xlabel('Episode')
 plt.ylabel('Total Reward')
-script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's directory
-save_dir = os.path.join(script_dir, '..', 'saved_models', 'end_to_end')
 plt.savefig(os.path.join(save_dir, 'rewards_per_episode.png'))
 plt.show()
