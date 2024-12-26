@@ -228,12 +228,12 @@ class Environment:
         # - rmse_similarity_masked
         # - directional_reward_penalty
 
-        similarity_score = weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
-        time_penalty = time_cost(step_count=self.step_count, factor=0.01)
-        action_penalty = action_cost(
-            action=action,
-            factor=10.0
-        )
+        # similarity_score = weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
+        # time_penalty = time_cost(step_count=self.step_count, factor=0.01)
+        # action_penalty = action_cost(
+        #     action=action,
+        #     factor=10.0
+        # )
         saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action, factor=1.0)
         parameter_distance = euclidean_distance(self.current_params, self.target_params)
 
