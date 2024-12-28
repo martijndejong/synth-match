@@ -47,7 +47,7 @@ class TD3Agent(tf.keras.Model):
         # Optimizers
         self.actor_optimizer = optimizers.Adam(learning_rate=1e-4)
         self.critic_optimizer = optimizers.Adam(learning_rate=1e-3)
-        self.observer_optimizer = optimizers.Adam(learning_rate=1e-6)  # Super slow learning for pre-trained observer
+        self.observer_optimizer = optimizers.Adam(learning_rate=1e-5)  # Super slow learning for pre-trained observer
 
     def build_actor(self):
         model = models.Sequential([
