@@ -32,7 +32,7 @@ host = Host(synthesizer=SimpleSynth, sample_rate=SAMPLING_RATE)
 # host = SimpleHost("/mnt/c/github/synth-match/amsynth_vst.so", sample_rate=SAMPLING_RATE)
 
 # Create environment object and pass synthesizer object
-env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=True, sampling_freq=SAMPLING_RATE)
+env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=False, sampling_freq=SAMPLING_RATE)
 
 hidden_dim = 256
 gamma = 0.9
@@ -66,18 +66,18 @@ agent = TD3Agent(
 )
 
 # Freeze the observer network
-agent.observer_network.trainable = False
+agent.observer_network.trainable = True
 
 # # Load pre-trained actor and critic weights
-# actor_weights_path = f'{saved_models_dir}/agent/actor_weights.h5'
-# critic_weights_path = f'{saved_models_dir}/agent/critic_weights.h5'
-# agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
+actor_weights_path = f'{saved_models_dir}/end_to_end/actor_weights.h5'
+critic_weights_path = f'{saved_models_dir}/end_to_end/critic_weights.h5'
+agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
 
 # Initialize replay memory
 replay_memory = ReplayBuffer(capacity=int(1e5))
 batch_size = 128  # Batch size for training from replay memory
 
-num_episodes = 500  # Number of episodes to train
+num_episodes = 2000  # Number of episodes to train
 start_time = time.time()  # Initialize timer
 
 rewards_mem = []  # TODO: replace by more systematic logging system in utility functions
@@ -121,19 +121,34 @@ script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's dire
 save_dir = os.path.join(script_dir, '..', 'saved_models', 'end_to_end')
 os.makedirs(save_dir, exist_ok=True)
 
-# Save model weights
-actor_save_path = os.path.join(save_dir, 'actor_weights.h5')
-critic_save_path = os.path.join(save_dir, 'critic_weights.h5')
-agent.save_actor_critic_weights(actor_save_path, critic_save_path)
-print(f"Actor weights saved to {actor_save_path}")
-print(f"Critic weights saved to {critic_save_path}")
+# # Save model weights
+# actor_save_path = os.path.join(save_dir, 'actor_weights.h5')
+# critic_save_path = os.path.join(save_dir, 'critic_weights.h5')
+# agent.save_actor_critic_weights(actor_save_path, critic_save_path)
+# print(f"Actor weights saved to {actor_save_path}")
+# print(f"Critic weights saved to {critic_save_path}")
 
 # Plotting
-# Plot total rewards per episode
+# Plot total rewards per episode, and a rolling average (smoother)
 plt.figure()
-plt.plot(rewards_mem)
+
+# Plot raw rewards
+plt.plot(rewards_mem, label='Reward per Episode')
+
+# Compute rolling average over last 50 episodes
+window_size = 50
+rolling_averages = []
+for i in range(len(rewards_mem)):
+    start_idx = max(0, i - window_size + 1)
+    window = rewards_mem[start_idx:i+1]
+    rolling_averages.append(np.mean(window))
+
+# Plot rolling average
+plt.plot(rolling_averages, label=f'Rolling Avg (last {window_size})')
+
 plt.title('Total Reward per Episode')
 plt.xlabel('Episode')
 plt.ylabel('Total Reward')
+plt.legend()
 plt.savefig(os.path.join(save_dir, 'rewards_per_episode.png'))
 plt.show()
