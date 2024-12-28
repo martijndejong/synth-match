@@ -12,6 +12,7 @@ from src.environment.reward_functions import (
     weighted_ssim,
     saturation_penalty,
     euclidean_distance,
+    calculate_ssim,
     masked_ssim,
     mse_similarity,
     rmse_similarity,
@@ -223,34 +224,36 @@ class Environment:
 
     def reward_function(self, action):
         # TODO: WE CAN IMPROVE THE REWARD FUNCTION STILL - BELOW ARE SOME EXAMPLES OF REWARD FUNCTIONS WE'RE NOT USING
+        # TODO: WEIGHTED_SSIM SEEMED MOST PROMISING, BUT HAS BEEN RETURNING NAN ON LATEST TESTS
         # - masked_ssim
         # - rmse_similarity
         # - rmse_similarity_masked
         # - directional_reward_penalty
 
-        # similarity_score = weighted_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
+        similarity_score = calculate_ssim(self.current_audio.spectrogram, self.target_audio.spectrogram)
         # time_penalty = time_cost(step_count=self.step_count, factor=0.01)
         # action_penalty = action_cost(
         #     action=action,
         #     factor=10.0
         # )
         saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action, factor=1.0)
-        parameter_distance = euclidean_distance(self.current_params, self.target_params)
+        # parameter_distance = euclidean_distance(self.current_params, self.target_params)
 
-        is_done, bonus = self.check_if_done(parameter_distance)  # usually pass similarity_score
+        is_done, bonus = self.check_if_done(similarity_score)  # usually pass similarity_score
 
         # reward = similarity_score ** 2 * 10 + parameter_distance - time_penalty - action_penalty - saturate_penalty + bonus
         # reward = 2 * parameter_distance + 2 * similarity_score - time_penalty - action_penalty - saturate_penalty + bonus
-        reward = parameter_distance - saturate_penalty + bonus
+        # reward = parameter_distance - saturate_penalty + bonus
+        reward = similarity_score - saturate_penalty + bonus
 
         return reward, is_done
 
     def check_if_done(self, similarity_score):
         max_steps = 100
-        # if similarity_score >= 0.9:
+        if similarity_score >= 0.95:
         # print(similarity_score)
         # similarity_score (= euclidean_stance (inherently squared)) >= -0.01 worked well with SuperSimpleSynth
-        if similarity_score >= -0.1:
+        # if similarity_score >= -0.1:
             return True, 100 * (max_steps - self.step_count) / max_steps
 
         if self.step_count >= max_steps:
