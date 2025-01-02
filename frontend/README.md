@@ -13,7 +13,7 @@ See [Vite Configuration Reference](https://vite.dev/config/).
 ## Project Setup
 
 ```sh
-npm install
+npm install (after CDing into the frontend folder)
 ```
 
 ### Compile and Hot-Reload for Development
