@@ -144,6 +144,9 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# Obsidian documentation setup
+documentation/obsidian-synth-match/.obsidian/
+
 # Pyre type checker
 .pyre/
 
