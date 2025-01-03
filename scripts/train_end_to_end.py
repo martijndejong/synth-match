@@ -1,154 +1,168 @@
-# Import environment and synthesizer
+import os
+import wandb
+from tqdm import tqdm
+import numpy as np
+from datetime import datetime
+
+# Environment & Synth
 from src.environment.environment import Environment
 from src.synthesizers import Host, SimpleSynth
 from pyvst import SimpleHost
 
-# Import observer and actor network
+# Observer & Agent
 from src.observers import build_spectrogram_observer
 from src.agents import TD3Agent
 
+from src.utils.config_manager import Config
 from src.utils.replay_buffer import ReplayBuffer
-import numpy as np
-
-import os
-import matplotlib.pyplot as plt
-
-from tqdm import tqdm
-import time
-
-# Get the current script's directory
-script_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Construct the path to the '../saved_models' directory
-saved_models_dir = os.path.join(script_dir, '..', 'saved_models')
 
 
-# Set constants
-SAMPLING_RATE = 44100.0
-NOTE_LENGTH = 0.5
+def main():
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
-# Create synthesizer object
-host = Host(synthesizer=SimpleSynth, sample_rate=SAMPLING_RATE)
-# host = SimpleHost("/mnt/c/github/synth-match/amsynth_vst.so", sample_rate=SAMPLING_RATE)
+    # --- 1) Load config for end-to-end training ---
+    config = Config()
+    config_path = os.path.join(script_dir, "configs", "config_end_to_end.yaml")
+    config.load(config_path)
 
-# Create environment object and pass synthesizer object
-env = Environment(synth_host=host, note_length=NOTE_LENGTH, control_mode="incremental", render_mode=False, sampling_freq=SAMPLING_RATE)
+    # --- 2) Initialize wandb (separate from observer script) ---
+    wandb.init(
+        project=config["experiment"]["project_name"],
+        name=config["experiment"]["run_name"],
+        group=config["experiment"]["group"],
+        config=config
+    )
 
-hidden_dim = 256
-gamma = 0.9
-tau = 0.005
-policy_noise = 0.2
-noise_clip = 0.5
-policy_delay = 2
+    # --- 3) Create environment & synthesizer ---
+    # If you have a specific VST plugin path:
+    # host = SimpleHost("/path/to/vst.so", sample_rate=sampling_rate)
+    # Otherwise, using our custom synthesizer and wrapper:
+    host = Host(synthesizer=SimpleSynth, sample_rate=config["environment"]["sampling_rate"])
 
-input_shape = env.get_input_shape()
-output_shape = env.get_output_shape()
+    env = Environment(
+        synth_host=host,
+        note_length=config["environment"]["note_length"],
+        control_mode=config["environment"]["control_mode"],
+        render_mode=config["environment"]["render_mode"],
+        sampling_freq=config["environment"]["sampling_rate"]
+    )
 
-# Create the observer network
-observer_network = build_spectrogram_observer(
-    input_shape=input_shape,
-    include_output_layer=False  # Exclude the output layer used during observer pre-training
-)
-# Load weights from the pre-trained observer network
-observer_weights_path = f'{saved_models_dir}/observer/SimpleSynth.h5'
-observer_network.load_weights(observer_weights_path, by_name=True, skip_mismatch=True)
+    input_shape = env.get_input_shape()
+    output_shape = env.get_output_shape()
 
-# Create the Actor-Critic agent
-agent = TD3Agent(
-    observer_network=observer_network,
-    action_dim=output_shape,
-    hidden_dim=hidden_dim,
-    gamma=gamma,
-    tau=tau,
-    policy_noise=policy_noise,
-    noise_clip=noise_clip,
-    policy_delay=policy_delay
-)
+    # --- 4) Build or load the observer network ---
+    observer_network = build_spectrogram_observer(
+        input_shape=input_shape,
+        include_output_layer=False  # Exclude output layer for end-to-end
+    )
 
-# Freeze the observer network
-agent.observer_network.trainable = True
+    # If we load weights from a previously trained observer
+    if config["model_loading"]["load_observer_weights"]:
+        observer_path = os.path.join(script_dir, "..", "saved_models", "observer")
+        observer_subfolder = config["model_loading"]["observer_subfolder"]
 
-# # Load pre-trained actor and critic weights
-actor_weights_path = f'{saved_models_dir}/end_to_end/actor_weights.h5'
-critic_weights_path = f'{saved_models_dir}/end_to_end/critic_weights.h5'
-agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
+        observer_weights_path = os.path.join(observer_path, observer_subfolder, "observer_weights.h5")
+        observer_network.load_weights(observer_weights_path, by_name=True, skip_mismatch=True)
+        print(f"[INFO] Loaded observer weights from {observer_weights_path}")
 
-# Initialize replay memory
-replay_memory = ReplayBuffer(capacity=int(1e5))
-batch_size = 128  # Batch size for training from replay memory
+    # --- 5) Create the agent (TD3) ---
+    agent = TD3Agent(
+        observer_network=observer_network,
+        action_dim=output_shape,
+        hidden_dim=config["agent"]["hidden_dim"],
+        gamma=config["agent"]["gamma"],
+        tau=config["agent"]["tau"],
+        policy_noise=config["agent"]["policy_noise"],
+        noise_clip=config["agent"]["noise_clip"],
+        policy_delay=config["agent"]["policy_delay"]
+    )
+    # If you want the observer to be trainable or frozen, set appropriately:
+    agent.observer_network.trainable = config["training"]["trainable_observer"]
 
-num_episodes = 2000  # Number of episodes to train
-start_time = time.time()  # Initialize timer
+    # --- 6) Optionally load pre-trained actor/critic weights ---
+    if config["model_loading"]["load_pretrained_agent"]:
+        agent_path = os.path.join(script_dir, "..", "saved_models", "agent")
+        agent_subfolder = config["model_loading"]["agent_subfolder"]
 
-rewards_mem = []  # TODO: replace by more systematic logging system in utility functions
-for episode in tqdm(range(num_episodes)):
-    state = env.reset()
-    synth_params = env.get_synth_params()
-    done = False
-    episode_reward = 0
+        load_dir = os.path.join(agent_path, agent_subfolder)
+        actor_weights_path = os.path.join(load_dir, "actor_weights.h5")
+        critic_weights_path = os.path.join(load_dir, "critic_weights.h5")
+        agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
+        print(f"[INFO] Loaded pretrained actor from {actor_weights_path}")
+        print(f"[INFO] Loaded pretrained critic from {critic_weights_path}")
 
-    while not done:
-        action = agent.act(state, synth_params)
-        next_state, reward, done = env.step(action)
-        next_synth_params = env.get_synth_params()
-        episode_reward += reward
+    # --- 7) Initialize replay buffer ---
+    replay_memory = ReplayBuffer(capacity=config["replay_buffer"]["capacity"])
 
-        # Store experience in replay memory
-        replay_memory.add((state, synth_params, action, reward, next_state, next_synth_params, done))
+    batch_size = config["replay_buffer"]["batch_size"]
+    num_episodes = config["training"]["num_episodes"]
 
-        # If enough samples are available in memory, sample a batch and perform a training step
-        if len(replay_memory) > batch_size:
-            # print("Training step")
-            sampled_experiences = replay_memory.sample(batch_size)
-            states, synth_params, actions, rewards, next_states, next_synth_paramss, dones = map(np.array, zip(*sampled_experiences))
-            agent.train_step((states, synth_params, actions, rewards, next_states, next_synth_paramss, dones))
+    # --- 8) Training loop ---
+    rewards_mem = []
 
-        state = next_state
-        synth_params = next_synth_params
+    for episode in tqdm(range(num_episodes)):
+        state = env.reset()
+        synth_params = env.get_synth_params()
+        done = False
+        episode_reward = 0.0
 
-    print(f'Episode {episode + 1}, Total Reward: {episode_reward:.2f}')
-    rewards_mem.append(episode_reward)
+        while not done:
+            action = agent.act(state, synth_params)
+            next_state, reward, done = env.step(action)
+            next_synth_params = env.get_synth_params()
+            episode_reward += reward
 
-    # Log time every 10 episodes
-    if episode % 10 == 0:
-        time_elapsed = time.time() - start_time
-        print(f"Episode {episode}: Time elapsed = {time_elapsed:.2f} seconds")
+            # Store experience
+            replay_memory.add(
+                (state, synth_params, action, reward, next_state, next_synth_params, done)
+            )
 
-print(rewards_mem)
+            # Train if buffer is large enough
+            if len(replay_memory) > batch_size:
+                batch = replay_memory.sample(batch_size)
+                states, synths, actions, rewards, nxt_states, nxt_synths, dones = map(
+                    np.array, zip(*batch)
+                )
+                agent.train_step((states, synths, actions, rewards,
+                                  nxt_states, nxt_synths, dones))
 
-# Closing and saving results
-script_dir = os.path.dirname(os.path.abspath(__file__))  # Get the script's directory
-save_dir = os.path.join(script_dir, '..', 'saved_models', 'end_to_end')
-os.makedirs(save_dir, exist_ok=True)
+            state = next_state
+            synth_params = next_synth_params
 
-# # Save model weights
-# actor_save_path = os.path.join(save_dir, 'actor_weights.h5')
-# critic_save_path = os.path.join(save_dir, 'critic_weights.h5')
-# agent.save_actor_critic_weights(actor_save_path, critic_save_path)
-# print(f"Actor weights saved to {actor_save_path}")
-# print(f"Critic weights saved to {critic_save_path}")
+        print(f"[INFO] Episode {episode + 1}, Reward: {episode_reward:.2f}")
+        wandb.log({"episode": episode + 1, "reward": episode_reward})
+        rewards_mem.append(episode_reward)
 
-# Plotting
-# Plot total rewards per episode, and a rolling average (smoother)
-plt.figure()
+    # --- 9) Systematic saving of final weights ---
+    base_dir = os.path.join(script_dir, "..", "saved_models", "end_to_end")
+    # Use run_name + timestamp for a subfolder
+    run_name = config["experiment"]["run_name"]
+    time_stamp = datetime.now().strftime("%Y%m%d_%H%M")
+    run_folder = f"{time_stamp}_{run_name}"
 
-# Plot raw rewards
-plt.plot(rewards_mem, label='Reward per Episode')
+    model_save_dir = os.path.join(base_dir, run_folder)
+    os.makedirs(model_save_dir, exist_ok=True)
 
-# Compute rolling average over last 50 episodes
-window_size = 50
-rolling_averages = []
-for i in range(len(rewards_mem)):
-    start_idx = max(0, i - window_size + 1)
-    window = rewards_mem[start_idx:i+1]
-    rolling_averages.append(np.mean(window))
+    # FIXME: Saving model does not work, potential fix: Unify the call signature (multiple inputs)
+    # def call(self, inputs, training=False):
+    #     """
+    #     inputs is a tuple: (states, synth_params)
+    #     or a dict: {"states": ..., "synth_params": ...}
+    #     """
+    #     states, synth_params = inputs
 
-# Plot rolling average
-plt.plot(rolling_averages, label=f'Rolling Avg (last {window_size})')
+    # agent.save_end_to_end(model_save_dir)
+    # print(f"[INFO] Saved model object to {model_save_dir}")
 
-plt.title('Total Reward per Episode')
-plt.xlabel('Episode')
-plt.ylabel('Total Reward')
-plt.legend()
-plt.savefig(os.path.join(save_dir, 'rewards_per_episode.png'))
-plt.show()
+    # Save config used
+    config_copy_path = os.path.join(model_save_dir, "config_used.yaml")
+    config.save(config_copy_path)
+    print(f"[INFO] Saved copy of config to {config_copy_path}")
+
+    # We don't store big artifacts on wandb (to save memory),
+    print("[INFO] End-to-end training completed.")
+    wandb.finish()
+
+
+if __name__ == "__main__":
+    main()
