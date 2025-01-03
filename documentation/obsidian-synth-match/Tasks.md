@@ -7,7 +7,8 @@
 #### Ideas
 ##### ML
 - [ ] Increase parameter space with cutoff frequency ADSR
-- [ ] Increase parameter space with 
+- [ ] Increase parameter space with second oscillator
+- [ ] Increase parameter space with oscillator 1 vs oscillator 2 mix
 ##### Frontend
 - [ ] Central configuration file in backend for parameters
 	- With parameters e.g.: name, is_visualized, min_val, max_val, color
