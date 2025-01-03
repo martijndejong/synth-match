@@ -2,7 +2,7 @@ from tensorflow.keras.layers import Input, Conv2D, MaxPooling2D, Flatten, Dense,
 from tensorflow.keras.models import Model
 
 
-def build_spectrogram_observer(input_shape=(128, 256, 2), num_params=None, include_output_layer=False):
+def build_spectrogram_observer(input_shape=(128, 256, 2), feature_dim=128, num_params=None, include_output_layer=False):
     inputs = Input(shape=input_shape)
     x = Conv2D(16, kernel_size=(3, 3), activation='relu', padding='same')(inputs)
     x = BatchNormalization()(x)
@@ -27,7 +27,7 @@ def build_spectrogram_observer(input_shape=(128, 256, 2), num_params=None, inclu
     x = Flatten()(x)
     x = Dense(256, activation='relu')(x)
     x = Dropout(0.5)(x)
-    x = Dense(128, activation='relu')(x)  # This is the feature layer - ALIGN SIZE WITH AGENT INPUT
+    x = Dense(feature_dim, activation='relu')(x)  # This is the feature layer - ALIGN SIZE WITH AGENT INPUT
     x = Dropout(0.5)(x)
 
     if include_output_layer and num_params is not None:

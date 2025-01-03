@@ -51,7 +51,7 @@ class TD3Agent(tf.keras.Model):
 
     def build_actor(self):
         model = models.Sequential([
-            layers.InputLayer(input_shape=(128 + self.action_dim,)),  # ALIGN SIZE WITH OBSERVER OUTPUT
+            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1] + self.action_dim,)),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(self.action_dim, activation='tanh'),  # For incremental continuous actions
@@ -62,7 +62,7 @@ class TD3Agent(tf.keras.Model):
 
     def build_critic(self):
         model = models.Sequential([
-            layers.InputLayer(input_shape=(128 + self.action_dim * 2,)),  # ALIGN SIZE WITH OBSERVER OUTPUT
+            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1] + self.action_dim * 2,)),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(1, activation='linear')
@@ -202,3 +202,11 @@ class TD3Agent(tf.keras.Model):
         self.critic_2.load_weights(critic_path + '_2.h5')
         self.critic_1_target.load_weights(critic_path + '_1.h5')
         self.critic_2_target.load_weights(critic_path + '_2.h5')
+
+    def save_end_to_end(self, filepath):
+        """
+        Saves the entire TD3Agent (including observer, actor, critics)
+        to `filepath` using the Keras SavedModel format.
+        """
+        # Keras will trace `self.call`, capturing sub-layers automatically.
+        tf.keras.models.save_model(self, filepath, save_format='tf')
