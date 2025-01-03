@@ -1,10 +1,14 @@
 <script setup>
 import KnobComponent from './components/KnobComponent.vue';
+import AudioPlayer from './components/AudioPlayer.vue'; // Import the AudioPlayer component
+import ADSRPlotter from './components/ADSRPlotter.vue'; // Import the ADSRPlotter component
 </script>
 
 <template>
   <main>
     <h2>Hi, test this will be the awesome synth interface</h2>
+
+    <!-- Knob Controls -->
     <div class="button-row">
       <div class="knob-item">
         <KnobComponent id="Cutoff-Frequency" />
@@ -27,6 +31,21 @@ import KnobComponent from './components/KnobComponent.vue';
         <span class="knob-label">Release</span>
       </div>
     </div>
+
+    <!-- Audio Player -->
+    <div class="audio-player-section">
+      <AudioPlayer audioSrc="/synth_saw_decay.wav" />
+    </div>  
+
+    <!-- ADSR Plotter -->
+    <div class="adsr-plotter-section">
+      <ADSRPlotter
+        :adsrData="[
+          [0.1, 0.2, 0.7, 0.5, 0.3], // Attack, Decay, Sustain Level, Sustain Length, Release
+          [0.2, 0.1, 0.6, 0.4, 0.2]  // Attack, Decay, Sustain Level, Sustain Length, Release
+        ]"
+      />
+    </div>
   </main>
 </template>
 
@@ -37,6 +56,10 @@ main {
   flex-direction: column;
   align-items: center;
   justify-content: center;
+}
+
+.audio-player-section {
+  margin-bottom: 1rem;
 }
 
 .button-row {
@@ -58,5 +81,12 @@ main {
   font-size: 1rem;
   margin-top: 0.5rem;
   font-weight: bold;
+}
+
+.adsr-plotter-section {
+  width: 100%;
+  max-width: 800px;
+  margin-top: 2rem;
+  text-align: center;
 }
 </style>

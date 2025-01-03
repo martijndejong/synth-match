@@ -21,15 +21,8 @@ a,
   }
 }
 
-/* @media (min-width: 1024px) {
-  body {
-    display: flex;
-    place-items: center;
-  }
-
-  #app {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    padding: 0 2rem;
-  }
-} */
+/* Color scheme for the ADSR component */
+:root {
+  --color-target: #42b883; /* Vibrant red for the target */
+  --color-match: #4277b8; /* Bright green for the match */
+}
