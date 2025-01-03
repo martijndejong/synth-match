@@ -1,10 +1,7 @@
 import yaml
 
-from abc import ABC
-from collections.abc import Mapping
 
-
-class Config(Mapping, ABC):
+class Config:
     """
     Config class that behaves like a dictionary and includes methods to load and save YAML configs.
     """
