@@ -40,11 +40,23 @@ class Config:
         """
         return key in self._config
 
+    def __iter__(self):
+        """
+        Make the Config object iterable (e.g., for wandb or other libraries expecting a dict).
+        """
+        return iter(self._config)
+
     def __repr__(self):
         """
         Represent the Config object with its dictionary contents.
         """
         return repr(self._config)
+
+    def items(self):
+        """
+        Return items from the underlying config dictionary.
+        """
+        return self._config.items()
 
     def as_dict(self):
         """
