@@ -1,0 +1,29 @@
+agent:
+  gamma: 0.9
+  hidden_dim: 256
+  noise_clip: 0.5
+  policy_delay: 2
+  policy_noise: 0.2
+  tau: 0.005
+environment:
+  control_mode: incremental
+  note_length: 0.5
+  render_mode: false
+  sampling_rate: 44100.0
+experiment:
+  group: end_to_end
+  project_name: SynthRLProject
+  run_name: first_wandb_test
+model_loading:
+  agent_subfolder: agent_training_20250101_120000
+  load_observer_weights: true
+  load_pretrained_agent: true
+  observer_subfolder: observer_training_20250101_100000
+model_saving:
+  base_dir: root/saved_models/end_to_end
+replay_buffer:
+  batch_size: 128
+  capacity: 100000
+training:
+  num_episodes: 100
+  trainable_observer: true
