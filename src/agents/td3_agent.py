@@ -202,3 +202,11 @@ class TD3Agent(tf.keras.Model):
         self.critic_2.load_weights(critic_path + '_2.h5')
         self.critic_1_target.load_weights(critic_path + '_1.h5')
         self.critic_2_target.load_weights(critic_path + '_2.h5')
+
+    def save_end_to_end(self, filepath):
+        """
+        Saves the entire TD3Agent (including observer, actor, critics)
+        to `filepath` using the Keras SavedModel format.
+        """
+        # Keras will trace `self.call`, capturing sub-layers automatically.
+        tf.keras.models.save_model(self, filepath, save_format='tf')
