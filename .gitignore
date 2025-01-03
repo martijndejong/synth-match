@@ -168,3 +168,6 @@ cython_debug/
 
 # (Heavy) training data
 data/labeled_spectrograms/
+
+# Local Weights and Biases logs
+wandb
