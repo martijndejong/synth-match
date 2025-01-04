@@ -1,7 +1,17 @@
 <script setup>
+import { ref, onMounted } from 'vue'
 import KnobComponent from './components/KnobComponent.vue';
 import AudioPlayer from './components/AudioPlayer.vue'; // Import the AudioPlayer component
-import ADSRPlotter from './components/ADSRPlotter.vue'; // Import the ADSRPlotter component
+import ADSRChart from './components/ADSRChart.vue'; // Import the new ADSRChart
+
+// Reactive array to store knob values
+const knobValues = ref({
+  'Cutoff-Frequency': 0,
+  'Attack': 0,
+  'Decay': 0,
+  'Sustain': 0,
+  'Release': 0,
+});
 </script>
 
 <template>
@@ -35,17 +45,11 @@ import ADSRPlotter from './components/ADSRPlotter.vue'; // Import the ADSRPlotte
     <!-- Audio Player -->
     <div class="audio-player-section">
       <AudioPlayer audioSrc="/synth_saw_decay.wav" />
-    </div>  
-
-    <!-- ADSR Plotter -->
-    <div class="adsr-plotter-section">
-      <ADSRPlotter
-        :adsrData="[
-          [0.1, 0.2, 0.7, 0.5, 0.3], // Attack, Decay, Sustain Level, Sustain Length, Release
-          [0.2, 0.1, 0.6, 0.4, 0.2]  // Attack, Decay, Sustain Level, Sustain Length, Release
-        ]"
-      />
     </div>
+
+    <!-- Line Chart Component -->
+    <ADSRChart />
+
   </main>
 </template>
 
