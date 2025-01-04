@@ -3,6 +3,7 @@
 - [x] Initial backend setup
 - [x] Implement two-way API connection for gauges
 - [x] Create Audio processor component for frontend
+- [x] Create ADSR plotter component for frontend
 
 #### Ideas
 ##### ML
@@ -21,5 +22,9 @@
 	- With parameters e.g.: name, is_visualized, min_val, max_val, color
 - [ ] Method to visualize spectrogram in other resolution frequency than used in audio processor internal state
 - [ ] Draft initial training validation UI design
+- [ ] Add button to generate sound based on synth preset
+	- [ ] Optionally make the sound bar grey when no sound is selected yet
+- [ ] Create time plots comparison functionality
+- [ ] Create spectrogram functionality 
 ##### Integration
 - [ ] Draft API design
