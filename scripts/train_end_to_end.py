@@ -22,7 +22,7 @@ def main():
 
     # --- 1) Load config for end-to-end training ---
     config = Config()
-    config_path = os.path.join(script_dir, "configs", "config_end_to_end.yaml")
+    config_path = os.path.join(script_dir, "configs", "train_end_to_end.yaml")
     config.load(config_path)
 
     # --- 2) Initialize wandb (separate from observer script) ---
