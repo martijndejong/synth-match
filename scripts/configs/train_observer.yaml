@@ -1,0 +1,23 @@
+experiment:
+  project_name: "SynthRLProject"
+  run_name: "increase_feature_dim_to_256"
+  group: "observer"
+
+training:
+  batch_size: 64
+  epochs: 10
+  val_fraction: 0.1
+  num_samples: 500000
+
+observer:
+  learning_rate: 1e-4
+  feature_dim: 256
+
+data:
+  # Relative to the location of train_observer.py
+  directory: "../data/labeled_spectrograms"
+  tfrecord_filename: "SimpleSynth.tfrecords"
+
+model_saving:
+  # Relative to the location of train_observer.py
+  base_dir: "../saved_models/observer"
