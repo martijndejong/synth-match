@@ -1,99 +1,125 @@
-import numpy as np
+import os
 import tensorflow as tf
 from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.callbacks import ModelCheckpoint
-from src.observers.spectrogram_observer import build_spectrogram_observer
 import matplotlib.pyplot as plt
-import os
-import h5py
+
+from src.observers.spectrogram_observer import build_spectrogram_observer
+
+
+def parse_tfrecord(serialized_example):
+    """
+    Parse a single TFRecord into (spectrogram, param_error) Tensors.
+    """
+    feature_spec = {
+        'spectrogram': tf.io.VarLenFeature(tf.float32),
+        'param_error': tf.io.VarLenFeature(tf.float32),
+        'spectrogram_shape': tf.io.VarLenFeature(tf.int64),
+        'param_error_shape': tf.io.VarLenFeature(tf.int64),
+    }
+    parsed = tf.io.parse_single_example(serialized_example, feature_spec)
+
+    # Convert sparse to dense
+    spectrogram_flat = tf.sparse.to_dense(parsed['spectrogram'])
+    param_error_flat = tf.sparse.to_dense(parsed['param_error'])
+    spectrogram_shape = tf.sparse.to_dense(parsed['spectrogram_shape'])
+    param_error_shape = tf.sparse.to_dense(parsed['param_error_shape'])
+
+    # Reshape tensors to their original shapes
+    spectrogram = tf.reshape(spectrogram_flat, spectrogram_shape)
+    param_error = tf.reshape(param_error_flat, param_error_shape)
+
+    return spectrogram, param_error
 
 
 def main():
-    # Set constants
+    # ---------------------------------------
+    # 1. Basic settings
+    # ---------------------------------------
     batch_size = 64
     epochs = 10
+    val_fraction = 0.1
 
-    # Get the script's directory
+    # ---------------------------------------
+    # 2. File paths
+    # ---------------------------------------
     script_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # Construct the path to the 'data/labeled_spectrograms' directory
     data_dir = os.path.join(script_dir, '..', 'data', 'labeled_spectrograms')
+    tfrecord_path = os.path.join(data_dir, 'SimpleSynth.tfrecords')
 
-    # Path to HDF5 file
-    h5_path = os.path.join(data_dir, 'SimpleSynth.h5')
+    # ---------------------------------------
+    # 3. Inspect the total number of samples
+    #    (Assumes you know how many records were written.)
+    # ---------------------------------------
+    # If you don't know exactly how many records are in the file, you can count them:
+    # print("Going to count records")
+    # num_samples = 0
+    # for _ in tf.data.TFRecordDataset(tfrecord_path):
+    #     num_samples += 1
+    # print("Total records found:", num_samples)
+    num_samples = 500000
+    steps_per_epoch = num_samples // batch_size
 
-    # Open HDF5 file
-    h5f = h5py.File(h5_path, 'r')
+    # ---------------------------------------
+    # 4. Create the base TF Dataset
+    # ---------------------------------------
+    dataset = tf.data.TFRecordDataset(tfrecord_path)
 
-    # Get dataset shapes
-    num_samples = h5f['stacked_spectrograms'].shape[0]
-    spectrogram_shape = h5f['stacked_spectrograms'].shape[1:]
-    num_params = h5f['param_errors'].shape[1]
+    # We'll parse each record into (spectrogram, param_error).
+    # Choose the parse function that matches how you wrote your TFRecords:
+    dataset = dataset.map(parse_tfrecord, num_parallel_calls=tf.data.AUTOTUNE)
+    # or dataset = dataset.map(_parse_tfrecord_legacy, num_parallel_calls=tf.data.AUTOTUNE)
 
-    # Build observer network with output layer
-    input_shape = spectrogram_shape  # Shape excluding batch dimension
+    # ---------------------------------------
+    # 5. Train/Validation split using skip/take
+    # ---------------------------------------
+    val_size = int(num_samples * val_fraction)
+    train_size = num_samples - val_size
+
+    # Because it's a single file, and we haven't shuffled yet, let's shuffle first
+    # (so that val_dataset is actually random).
+    # Shuffle the entire dataset - we can set buffer_size to num_samples or 10000 etc.
+    # Then "re-batch" into train/val by skipping/taking.
+    dataset = dataset.shuffle(buffer_size=min(num_samples, 10000), reshuffle_each_iteration=False)
+
+    train_dataset = dataset.take(train_size)
+    val_dataset = dataset.skip(train_size)
+
+    # Now we can shuffle again for training each epoch:
+    train_dataset = train_dataset.shuffle(buffer_size=10000, reshuffle_each_iteration=True)
+
+    # ---------------------------------------
+    # 6. Batch and Prefetch
+    # ---------------------------------------
+    train_dataset = train_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+    val_dataset = val_dataset.batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+    # ---------------------------------------
+    # 7. Build/Compile the Model
+    #    (We can infer shape from a sample.)
+    # ---------------------------------------
+    # Peek at 1 element to get shape
+    sample_spec, sample_err = next(iter(train_dataset))
+    spectrogram_shape = sample_spec.shape[1:]  # excluding batch dimension
+    num_params = sample_err.shape[1]
+
     observer_network = build_spectrogram_observer(
-        input_shape=input_shape,
+        input_shape=spectrogram_shape,
         num_params=num_params,
         include_output_layer=True
     )
-
-    # Compile model
     observer_network.compile(
         optimizer=Adam(learning_rate=1e-4),
         loss='mean_squared_error'
     )
 
-    # Create indices for splitting
-    indices = np.arange(num_samples)
-    np.random.shuffle(indices)
-    val_fraction = 0.1
-    val_size = int(num_samples * val_fraction)
-    train_size = num_samples - val_size
-
-    train_indices = indices[:train_size]
-    val_indices = indices[train_size:]
-
-    # Function to retrieve data from HDF5 file
-    def get_data(idx):
-        idx = idx.numpy()
-        spectrogram = h5f['stacked_spectrograms'][idx]
-        param_error = h5f['param_errors'][idx]
-        return spectrogram, param_error
-
-    # Create datasets using from_tensor_slices
-    train_dataset = tf.data.Dataset.from_tensor_slices(train_indices)
-    val_dataset = tf.data.Dataset.from_tensor_slices(val_indices)
-
-    # Map the indices to data samples using tf.py_function
-    train_dataset = train_dataset.map(
-        lambda idx: tf.py_function(
-            func=get_data, inp=[idx], Tout=(tf.float32, tf.float32)
-        ),
-        num_parallel_calls=tf.data.experimental.AUTOTUNE
-    )
-    val_dataset = val_dataset.map(
-        lambda idx: tf.py_function(
-            func=get_data, inp=[idx], Tout=(tf.float32, tf.float32)
-        ),
-        num_parallel_calls=tf.data.experimental.AUTOTUNE
-    )
-
-    # Shuffle and batch the training dataset
-    train_dataset = train_dataset.shuffle(buffer_size=10000)
-    train_dataset = train_dataset.batch(batch_size)
-    train_dataset = train_dataset.prefetch(tf.data.experimental.AUTOTUNE)
-
-    # Batch and prefetch the validation dataset
-    val_dataset = val_dataset.batch(batch_size)
-    val_dataset = val_dataset.prefetch(tf.data.experimental.AUTOTUNE)
-
-    # Directory to save the observer network weights
+    # ---------------------------------------
+    # 8. Model Checkpoint callback
+    # ---------------------------------------
     save_dir = os.path.join(script_dir, '..', 'saved_models', 'observer')
     os.makedirs(save_dir, exist_ok=True)
-    model_path = os.path.join(save_dir, 'SimpleSynth.h5')
+    model_path = os.path.join(save_dir, 'SimpleSynth_TEMPDELETE.h5')
 
-    # Set up the model checkpoint callback to save the model only when validation loss improves
     checkpoint_callback = ModelCheckpoint(
         filepath=model_path,
         save_weights_only=True,
@@ -103,16 +129,23 @@ def main():
         verbose=1
     )
 
-    # Train model
+    # ---------------------------------------
+    # 9. Train the Model
+    # ---------------------------------------
     print("Training observer network...")
     history = observer_network.fit(
         train_dataset,
         epochs=epochs,
+        steps_per_epoch=steps_per_epoch,
         validation_data=val_dataset,
-        callbacks=[checkpoint_callback]
+        validation_steps=val_size // batch_size,
+        callbacks=[checkpoint_callback],
+        verbose=1
     )
 
-    # Plot training and validation loss
+    # ---------------------------------------
+    # 10. Plot Loss Curves
+    # ---------------------------------------
     plt.figure(figsize=(10, 5))
     epochs_range = range(1, epochs + 1)
     plt.plot(epochs_range, history.history['loss'], label='Training Loss')
@@ -123,9 +156,6 @@ def main():
     plt.legend()
     plt.grid(True)
     plt.show()
-
-    # Close the HDF5 file
-    h5f.close()
 
 
 if __name__ == "__main__":
