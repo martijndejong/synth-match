@@ -1,0 +1,19 @@
+**Send target parameters & generate target sound**
+- **Input**
+	- Synth parameters
+	- Note length (disabled for now)
+	- Note (C4 etc - disabled for now)
+	- (Later we would like to specify n_mels & hop_len, but out of scope for now)
+- **Return**
+	- Target Sound (virtualized?) - same resolution as in Environment
+	- Target Spectrogram - same resolution as in Environment, maybe bit reduced
+	- ~~(Target ADSR point values (depends if the logic is centralized in the BE or not))~~
+	- **Potential format**:
+		- {
+			- target_sound: {
+					- Float array [x * 1] - TBD if and how we will handle stereo
+				- },
+			- target_spectogram: {
+				- - Float array [m x n] - TBD - format can later change depending on n_mels & hop_len
+			- }
+		- }
