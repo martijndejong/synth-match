@@ -1,6 +1,5 @@
 import os
 import tensorflow as tf
-import matplotlib.pyplot as plt
 from datetime import datetime
 
 import wandb
@@ -14,7 +13,7 @@ from src.utils.config_manager import Config
 
 class CustomWandbCallback(tf.keras.callbacks.Callback):
     def on_epoch_end(self, epoch, logs=None):
-        wandb.log({"epoch": epoch, "training_loss": logs.get("loss"), "validation_loss": logs.get("val_loss")})
+        wandb.log({"epoch": epoch + 1, "training_loss": logs.get("loss"), "validation_loss": logs.get("val_loss")})
 
 
 def parse_tfrecord(serialized_example):
@@ -124,7 +123,7 @@ def main():
         include_output_layer=True
     )
     observer_network.compile(
-        optimizer=Adam(learning_rate=config["observer"]["learning_rate"]),
+        optimizer=Adam(learning_rate=float(config["observer"]["learning_rate"])),
         loss='mean_squared_error'
     )
 
