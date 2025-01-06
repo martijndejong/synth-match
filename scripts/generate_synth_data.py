@@ -1,5 +1,4 @@
 import os
-import numpy as np
 import tensorflow as tf
 from src.environment.environment import Environment
 from src.synthesizers import Host, SimpleSynth
@@ -52,7 +51,7 @@ def main():
     print(f"Spectrogram shape: {spectrogram_shape}, Parameter error shape: {param_shape}")
 
     # Write TFRecords
-    tfrecord_path = os.path.join(data_dir, 'SimpleSynth.tfrecords')
+    tfrecord_path = os.path.join(data_dir, 'SimpleSynth_original.tfrecords')
     print(f"Writing TFRecords to {tfrecord_path} ...")
 
     with tf.io.TFRecordWriter(tfrecord_path) as writer:
