@@ -42,6 +42,8 @@ def build_spectrogram_observer(input_shape=(128, 256, 2), feature_dim=128, num_p
         outputs = x
 
     model = Model(inputs=inputs, outputs=outputs)
+    print("[INFO] Built observer model with following architecture:")
+    model.summary()
     return model
 
 
