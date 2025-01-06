@@ -24,6 +24,11 @@ def build_spectrogram_observer(input_shape=(128, 256, 2), feature_dim=128, num_p
     x = MaxPooling2D(pool_size=(2, 2))(x)
     x = Dropout(0.25)(x)
 
+    x = Conv2D(256, kernel_size=(3, 3), activation='relu', padding='same')(x)
+    x = BatchNormalization()(x)
+    x = MaxPooling2D(pool_size=(2, 2))(x)
+    x = Dropout(0.25)(x)
+
     x = Flatten()(x)
     x = Dense(256, activation='relu')(x)
     x = Dropout(0.5)(x)
@@ -37,6 +42,8 @@ def build_spectrogram_observer(input_shape=(128, 256, 2), feature_dim=128, num_p
         outputs = x
 
     model = Model(inputs=inputs, outputs=outputs)
+    print("[INFO] Built observer model with following architecture:")
+    model.summary()
     return model
 
 

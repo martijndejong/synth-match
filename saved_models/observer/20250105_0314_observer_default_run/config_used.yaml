@@ -1,0 +1,14 @@
+data:
+  directory: ../data/labeled_spectrograms
+  tfrecord_filename: SimpleSynth.tfrecords
+experiment:
+  group: observer
+  project_name: SynthRLProject
+  run_name: observer_default_run
+model_saving:
+  base_dir: ../saved_models/observer
+training:
+  batch_size: 64
+  epochs: 10
+  num_samples: 500000
+  val_fraction: 0.1

@@ -1,6 +1,5 @@
-import numpy as np
 import os
-import h5py
+import tensorflow as tf
 from src.environment.environment import Environment
 from src.synthesizers import Host, SimpleSynth
 from tqdm import tqdm
@@ -8,18 +7,32 @@ from tqdm import tqdm
 # Set constants
 SAMPLING_RATE = 44100.0
 NOTE_LENGTH = 0.5
-NUM_SAMPLES = 500000  # Total number of samples generated
-BATCH_SIZE = 1000  # Number of samples per batch
+NUM_SAMPLES = 500000
+BATCH_SIZE = 1000
+
+
+def serialize_example(spectrogram, param_error):
+    """
+    Convert a single (spectrogram, param_error) pair into a serialized TFRecord Example.
+    """
+    feature = {
+        'spectrogram': tf.train.Feature(float_list=tf.train.FloatList(value=spectrogram.flatten())),
+        'param_error': tf.train.Feature(float_list=tf.train.FloatList(value=param_error.flatten())),
+        'spectrogram_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=spectrogram.shape)),
+        'param_error_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=param_error.shape)),
+    }
+    example = tf.train.Example(features=tf.train.Features(feature=feature))
+    return example.SerializeToString()
 
 
 def main():
     # Get the script's directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    data_dir = os.path.join(script_dir, '..', 'data', 'labeled_spectrograms')
+    os.makedirs(data_dir, exist_ok=True)
 
-    # Create synthesizer object
+    # Create synthesizer objects
     host = Host(synthesizer=SimpleSynth, sample_rate=SAMPLING_RATE)
-
-    # Create environment object and pass synthesizer object
     env = Environment(
         synth_host=host,
         note_length=NOTE_LENGTH,
@@ -28,78 +41,39 @@ def main():
         sampling_freq=SAMPLING_RATE
     )
 
-    # Determine the shape of one sample to initialize datasets
+    # Determine shape of one sample
     env.reset(increment_episode=False)
-    # Generate a sample state
-    stacked_spectrogram = env.calculate_state(form="stacked_spectrogram")
-    param_error = env.target_params - env.current_params
+    dummy_spec = env.calculate_state(form="stacked_spectrogram")
+    dummy_err = env.target_params - env.current_params
+    spectrogram_shape = dummy_spec.shape
+    param_shape = dummy_err.shape
 
-    # Get shapes
-    spectrogram_shape = stacked_spectrogram.shape  # (height, width, channels)
-    param_shape = param_error.shape  # (num_params,)
+    print(f"Spectrogram shape: {spectrogram_shape}, Parameter error shape: {param_shape}")
 
-    # Construct the path to the 'data/labeled_spectrograms' directory
-    data_dir = os.path.join(script_dir, '..', 'data', 'labeled_spectrograms')
-    os.makedirs(data_dir, exist_ok=True)
+    # Write TFRecords
+    tfrecord_path = os.path.join(data_dir, 'SimpleSynth_original.tfrecords')
+    print(f"Writing TFRecords to {tfrecord_path} ...")
 
-    # Create HDF5 file
-    h5_path = os.path.join(data_dir, 'SimpleSynth.h5')
-    with h5py.File(h5_path, 'w') as h5f:
-        # Create datasets with appropriate shapes
-        spectrograms_ds = h5f.create_dataset(
-            'stacked_spectrograms',
-            shape=(NUM_SAMPLES,) + spectrogram_shape,
-            maxshape=(NUM_SAMPLES,) + spectrogram_shape,
-            chunks=(BATCH_SIZE,) + spectrogram_shape,
-            dtype=np.float32,
-            compression=None  # Disable compression for faster writes
-        )
-        param_errors_ds = h5f.create_dataset(
-            'param_errors',
-            shape=(NUM_SAMPLES,) + param_shape,
-            maxshape=(NUM_SAMPLES,) + param_shape,
-            chunks=(BATCH_SIZE,) + param_shape,
-            dtype=np.float32,
-            compression=None  # Disable compression for faster writes
-        )
+    with tf.io.TFRecordWriter(tfrecord_path) as writer:
+        num_batches = (NUM_SAMPLES + BATCH_SIZE - 1) // BATCH_SIZE
+        for _ in tqdm(range(num_batches), desc="Generating Data"):
+            # Initialize batch arrays
+            spectrogram_batch = []
+            param_error_batch = []
 
-        # Generate data and write to datasets in batches
-        print("Generating data and writing to HDF5 file...")
-        num_batches = NUM_SAMPLES // BATCH_SIZE
-        if NUM_SAMPLES % BATCH_SIZE != 0:
-            num_batches += 1  # Include the last partial batch
-
-        for batch_idx in tqdm(range(num_batches)):
-            start_idx = batch_idx * BATCH_SIZE
-            end_idx = min((batch_idx + 1) * BATCH_SIZE, NUM_SAMPLES)
-            current_batch_size = end_idx - start_idx
-
-            print(f"Processing batch {batch_idx + 1}/{num_batches} "
-                  f"({start_idx}-{end_idx})")
-
-            # Initialize arrays to hold the batch data
-            spectrograms_batch = np.zeros(
-                (current_batch_size,) + spectrogram_shape, dtype=np.float32)
-            param_errors_batch = np.zeros(
-                (current_batch_size,) + param_shape, dtype=np.float32)
-
-            # Generate data for the batch
-            for i in range(current_batch_size):
-                # Reset environment to generate new target and current sounds
+            for _ in range(BATCH_SIZE):
                 env.reset(increment_episode=False)
-                # Get the stacked spectrogram (input)
-                stacked_spectrogram = env.calculate_state(form="stacked_spectrogram")
-                # Get the parameter error (output)
+                spectrogram = env.calculate_state(form="stacked_spectrogram")
                 param_error = env.calculate_state(form="synth_param_error")
+                spectrogram_batch.append(spectrogram)
+                param_error_batch.append(param_error)
 
-                spectrograms_batch[i] = stacked_spectrogram
-                param_errors_batch[i] = param_error
+            # Write the batch
+            for spectrogram, param_error in zip(spectrogram_batch, param_error_batch):
+                example = serialize_example(spectrogram, param_error)
+                writer.write(example)
 
-            # Write the batch to the datasets
-            spectrograms_ds[start_idx:end_idx] = spectrograms_batch
-            param_errors_ds[start_idx:end_idx] = param_errors_batch
-
-    print(f"Data saved to {os.path.abspath(h5_path)}")
+    print("TFRecords creation complete.")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,38 @@
+experiment:
+  project_name: "SynthRLProject"
+  group: "end_to_end"
+  run_name: "first_wandb_test"
+
+environment:
+  sampling_rate: 44100.0
+  note_length: 0.5
+  control_mode: "incremental"
+  render_mode: false
+
+agent:
+  hidden_dim: 256
+  gamma: 0.9
+  tau: 0.005
+  policy_noise: 0.2
+  noise_clip: 0.5
+  policy_delay: 2
+
+replay_buffer:
+  capacity: 100000
+  batch_size: 128
+
+training:
+  num_episodes: 1000
+  trainable_observer: true
+
+model_loading:
+  load_observer_weights: true
+  # This is the subfolder name you want to load from (if any)
+  observer_subfolder: "20250101_100000_observer_training"
+
+  load_pretrained_agent: true
+  # This is the subfolder name you want to load from (if any)
+  agent_subfolder: "20250101_120000_agent_training"
+
+model_saving:
+  base_dir: "../saved_models/end_to_end"
