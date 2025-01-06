@@ -1,0 +1,17 @@
+data:
+  directory: ../data/labeled_spectrograms
+  tfrecord_filename: SimpleSynth.tfrecords
+experiment:
+  group: observer
+  project_name: SynthRLProject
+  run_name: increase_feature_dim_to_256
+model_saving:
+  base_dir: ../saved_models/observer
+observer:
+  feature_dim: 256
+  learning_rate: 1e-4
+training:
+  batch_size: 64
+  epochs: 15
+  num_samples: 500000
+  val_fraction: 0.1
