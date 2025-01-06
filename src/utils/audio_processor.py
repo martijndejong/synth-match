@@ -47,7 +47,7 @@ class AudioProcessor:
         self.spectrogram = (self.spectrogram - db_floor) / (db_ceil - db_floor)
         self.spectrogram = np.clip(self.spectrogram, 0, 1)
 
-    def calculate_spectrogram(self, hop_len: int = 512, n_mels: int = 256):
+    def calculate_spectrogram(self, hop_len: int = 512, n_mels: int = 128):
         # Compute mel-scaled spectrogram
         S_mel = librosa.feature.melspectrogram(
             y=self.audio_sample,
