@@ -17,8 +17,8 @@ def serialize_example(spectrogram, param_error):
     Convert a single (spectrogram, param_error) pair into a serialized TFRecord Example.
     """
     feature = {
-        'spectrogram': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.io.serialize_tensor(spectrogram).numpy()])),
-        'param_error': tf.train.Feature(bytes_list=tf.train.BytesList(value=[tf.io.serialize_tensor(param_error).numpy()])),
+        'spectrogram': tf.train.Feature(float_list=tf.train.FloatList(value=spectrogram.flatten())),
+        'param_error': tf.train.Feature(float_list=tf.train.FloatList(value=param_error.flatten())),
         'spectrogram_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=spectrogram.shape)),
         'param_error_shape': tf.train.Feature(int64_list=tf.train.Int64List(value=param_error.shape)),
     }
