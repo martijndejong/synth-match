@@ -4,17 +4,17 @@
 - [x] Implement two-way API connection for gauges
 - [x] Create Audio processor component for frontend
 - [x] Create ADSR plotter component for frontend
+- [x] Fix observer training script inefficiency (load more samples per get_data() call)
+- [x] Refactor observer training script to be config driven
+- [x] Refactor observer training script to use wandb
+- [x] Train observer with higher feature_dim (input size for agent)
+- [x] Train observer with more n_mels spectrogram
 
 #### Ideas
 ##### ML
 - [ ] Increase parameter space with cutoff frequency ADSR
 - [ ] Increase parameter space with second oscillator
 - [ ] Increase parameter space with oscillator 1 vs oscillator 2 mix
-- [ ] Fix observer training script inefficiency (load more samples per get_data() call)
-- [ ] Refactor observer training script to be config driven
-- [ ] Refactor observer training script to use wandb
-- [ ] Train observer with higher feature_dim (input size for agent)
-- [ ] Train observer with more n_mels spectrogram
 - [ ] Refactor 'scripts/train_agent.py' to resemble end_to_end training, just with frozen observer
 - [ ] Create option to dynamically change the environment reward function (Euclidean -> Image similarity)
 ##### Frontend
