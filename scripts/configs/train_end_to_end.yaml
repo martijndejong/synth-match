@@ -1,7 +1,7 @@
 experiment:
   project_name: "SynthRLProject"
   group: "end_to_end"
-  run_name: "first_wandb_test"
+  run_name: "image_based"
 
 environment:
   sampling_rate: 44100.0
@@ -28,11 +28,11 @@ training:
 model_loading:
   load_observer_weights: true
   # This is the subfolder name you want to load from (if any)
-  observer_subfolder: "20250101_100000_observer_training"
+  observer_subfolder: "20250106_2043_try_original_settings_again"
 
   load_pretrained_agent: true
   # This is the subfolder name you want to load from (if any)
-  agent_subfolder: "20250101_120000_agent_training"
+  agent_subfolder: "20250107_0107_first_wandb_agent_training"
 
 model_saving:
   base_dir: "../saved_models/end_to_end"
