@@ -237,7 +237,7 @@ class Environment:
         #     factor=10.0
         # )
         saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action, factor=1.0)
-        # parameter_distance = euclidean_distance(self.current_params, self.target_params)
+        # similarity_score = euclidean_distance(self.current_params, self.target_params)  # aka parameter_distance
 
         is_done, bonus = self.check_if_done(similarity_score)  # usually pass similarity_score
 
