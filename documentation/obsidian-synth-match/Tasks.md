@@ -9,13 +9,13 @@
 - [x] Refactor observer training script to use wandb
 - [x] Train observer with higher feature_dim (input size for agent)
 - [x] Train observer with more n_mels spectrogram
+- [x] Refactor 'scripts/train_agent.py' to resemble end_to_end training, just with frozen observer
 
 #### Ideas
 ##### ML
 - [ ] Increase parameter space with cutoff frequency ADSR
 - [ ] Increase parameter space with second oscillator
 - [ ] Increase parameter space with oscillator 1 vs oscillator 2 mix
-- [ ] Refactor 'scripts/train_agent.py' to resemble end_to_end training, just with frozen observer
 - [ ] Create option to dynamically change the environment reward function (Euclidean -> Image similarity)
 ##### Frontend
 - [ ] Central configuration file in backend for parameters
