@@ -189,13 +189,19 @@ class TD3Agent(tf.keras.Model):
             target.assign(self.tau * source + (1 - self.tau) * target)
 
     # Methods to save and load network for pretraining
-    def save_actor_critic_weights(self, actor_path, critic_path):
+    def save_actor_critic_weights(self, filepath):
+        actor_path = f"{filepath}/actor_weights.h5"
+        critic_path = f"{filepath}/critic_weights"
+
         self.actor.save_weights(actor_path)
         # Save both critic networks' weights together
         self.critic_1.save_weights(critic_path + '_1.h5')
         self.critic_2.save_weights(critic_path + '_2.h5')
 
-    def load_actor_critic_weights(self, actor_path, critic_path):
+    def load_actor_critic_weights(self, filepath):
+        actor_path = f"{filepath}/actor_weights.h5"
+        critic_path = f"{filepath}/critic_weights"
+
         self.actor.load_weights(actor_path)
         self.actor_target.load_weights(actor_path)
         self.critic_1.load_weights(critic_path + '_1.h5')
