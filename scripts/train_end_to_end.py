@@ -85,11 +85,8 @@ def main():
         agent_subfolder = config["model_loading"]["agent_subfolder"]
 
         load_dir = os.path.join(agent_path, agent_subfolder)
-        actor_weights_path = os.path.join(load_dir, "actor_weights.h5")
-        critic_weights_path = os.path.join(load_dir, "critic_weights.h5")
-        agent.load_actor_critic_weights(actor_weights_path, critic_weights_path)
-        print(f"[INFO] Loaded pretrained actor from {actor_weights_path}")
-        print(f"[INFO] Loaded pretrained critic from {critic_weights_path}")
+        agent.load_actor_critic_weights(load_dir)
+        print(f"[INFO] Loaded pretrained agent from {load_dir}")
 
     # --- 7) Initialize replay buffer ---
     replay_memory = ReplayBuffer(capacity=config["replay_buffer"]["capacity"])
@@ -100,7 +97,7 @@ def main():
     # --- 8) Training loop ---
     rewards_mem = []
 
-    for episode in tqdm(range(num_episodes)):
+    for episode in tqdm(range(num_episodes), desc="Training agent on simulated experiences"):
         state = env.reset()
         synth_params = env.get_synth_params()
         done = False
