@@ -1,7 +1,7 @@
 experiment:
   project_name: "SynthRLProject"
   group: "end_to_end"
-  run_name: "image_based"
+  run_name: "decaying_expert_correction"
 
 environment:
   sampling_rate: 44100.0
@@ -22,15 +22,20 @@ replay_buffer:
   batch_size: 128
 
 training:
-  num_episodes: 1000
+  num_episodes: 2000
   trainable_observer: true
+
+expert_correction:
+  enabled: true       # set to false if you want to disable the blending
+  start_expert_fraction: 1.0    # expert assistance at episode 0
+  decay_episodes: 1000  # linearly decay alpha to 0 over this many episodes
 
 model_loading:
   load_observer_weights: true
   # This is the subfolder name you want to load from (if any)
   observer_subfolder: "20250106_2043_try_original_settings_again"
 
-  load_pretrained_agent: true
+  load_pretrained_agent: false
   # This is the subfolder name you want to load from (if any)
   agent_subfolder: "20250107_0107_first_wandb_agent_training"
 

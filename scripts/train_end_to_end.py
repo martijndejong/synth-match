@@ -15,6 +15,7 @@ from src.agents import TD3Agent
 
 from src.utils.config_manager import Config
 from src.utils.replay_buffer import ReplayBuffer
+from src.utils.math import vector_lerp
 
 
 def main():
@@ -25,7 +26,7 @@ def main():
     config_path = os.path.join(script_dir, "configs", "train_end_to_end.yaml")
     config.load(config_path)
 
-    # --- 2) Initialize wandb (separate from observer script) ---
+    # --- 2) Initialize wandb ---
     wandb.init(
         project=config["experiment"]["project_name"],
         name=config["experiment"]["run_name"],
@@ -90,21 +91,36 @@ def main():
 
     # --- 7) Initialize replay buffer ---
     replay_memory = ReplayBuffer(capacity=config["replay_buffer"]["capacity"])
-
     batch_size = config["replay_buffer"]["batch_size"]
-    num_episodes = config["training"]["num_episodes"]
 
     # --- 8) Training loop ---
     rewards_mem = []
 
-    for episode in tqdm(range(num_episodes), desc="Training agent on simulated experiences"):
+    for episode in tqdm(range(config["training"]["num_episodes"]), desc="Training agent on simulated experiences"):
         state = env.reset()
         synth_params = env.get_synth_params()
         done = False
         episode_reward = 0.0
 
+        # Compute expert_fraction (expert assistance) for this episode
+        if config["expert_correction"]["enabled"]:
+            fraction = 1.0 - (episode / config["expert_correction"]["decay_episodes"])
+            fraction = max(0.0, min(1.0, fraction))  # clamp between [0, 1]
+            expert_fraction = config["expert_correction"]["start_expert_fraction"] * fraction
+        else:
+            expert_fraction = 0.0
+
         while not done:
-            action = agent.act(state, synth_params)
+            agent_action = agent.act(state, synth_params)
+
+            # If expert correction is enabled, compute perfect action and blend into agent action
+            if expert_fraction > 0.0:
+                expert_action = env.calculate_state(form="synth_param_error")
+                action = vector_lerp(agent_action, expert_action, expert_fraction)
+            else:
+                action = agent_action
+
+            # Step in the environment
             next_state, reward, done = env.step(action)
             next_synth_params = env.get_synth_params()
             episode_reward += reward
@@ -127,12 +143,18 @@ def main():
             synth_params = next_synth_params
 
         print(f"[INFO] Episode {episode + 1}, Reward: {episode_reward:.2f}")
-        wandb.log({"episode": episode + 1, "reward": episode_reward})
+
+        # Log to wandb
+        wandb.log({
+            "episode": episode + 1,
+            "reward": episode_reward,
+            "expert_fraction": expert_fraction
+        })
+
         rewards_mem.append(episode_reward)
 
-    # --- 9) Systematic saving of final weights ---
+    # --- 9) Save final weights, config, etc. ---
     base_dir = os.path.join(script_dir, "..", "saved_models", "end_to_end")
-    # Use run_name + timestamp for a subfolder
     run_name = config["experiment"]["run_name"]
     time_stamp = datetime.now().strftime("%Y%m%d_%H%M")
     run_folder = f"{time_stamp}_{run_name}"
@@ -156,7 +178,6 @@ def main():
     config.save(config_copy_path)
     print(f"[INFO] Saved copy of config to {config_copy_path}")
 
-    # We don't store big artifacts on wandb (to save memory),
     print("[INFO] End-to-end training completed.")
     wandb.finish()
 
