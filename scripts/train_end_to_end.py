@@ -15,7 +15,7 @@ from src.agents import TD3Agent
 
 from src.utils.config_manager import Config
 from src.utils.replay_buffer import ReplayBuffer
-from src.utils.math import vector_lerp
+from src.utils.math import linear_interp
 
 
 def main():
@@ -116,7 +116,7 @@ def main():
             # If expert correction is enabled, compute perfect action and blend into agent action
             if expert_fraction > 0.0:
                 expert_action = env.calculate_state(form="synth_param_error")
-                action = vector_lerp(agent_action, expert_action, expert_fraction)
+                action = linear_interp(agent_action, expert_action, expert_fraction)
             else:
                 action = agent_action
 
