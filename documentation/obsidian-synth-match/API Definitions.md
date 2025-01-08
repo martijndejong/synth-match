@@ -23,7 +23,7 @@
 {
     "note": "C4",
     "note_length": 0.5,
-    "parameters": {
+    "target_parameters": {
       "amplitude": 0.8,
       "amplitude_attack": 0.5,
       "amplitude_decay": 0.3,
@@ -38,12 +38,12 @@
 ```json
 {
 
-    "audio_data": {
+    "target_audio_data": {
       "sample_rate": 44100,
       "bit_depth": 16,
       "samples": [0, 324, 643, -234, -576, -304, 384, 203, -203]
     },
-    "spectrogram_data": {
+    "target_spectrogram_data": {
       "width": 256,
       "height": 128,
       "pixel_values": [
@@ -55,3 +55,51 @@
     }
 }
 ```
+
+### Get match from parameters
+**Example request**
+```json
+{
+    "note": "C4", // Hardcoded in the beginning, configurable later
+    "note_length": 0.5, // Hardcoded in the beginning, configurable later
+    "target_parameters": {
+      "amplitude": 0.8,
+      "amplitude_attack": 0.8,
+      "amplitude_decay": 0.8,
+      "amplitude_sustain": 0.8,
+      "amplitude_release": 0.8,
+      "filter_cutoff_frequency": 0.3,
+      "filter_cutoff_resonance": 1.2
+    }
+  }
+```
+**Example return**
+```json
+{
+	"matched_parameters": {
+      "amplitude": 0.8,
+      "amplitude_attack": 0.8,
+      "amplitude_decay": 0.8,
+      "amplitude_sustain": 0.8,
+      "amplitude_release": 0.8,
+      "filter_cutoff_frequency": 0.3,
+      "filter_cutoff_resonance": 1.2
+    },
+    "matched_audio_data": {
+      "sample_rate": 44100,
+      "bit_depth": 16,
+      "samples": [0, 324, 643, -234, -576, -304, 384, 203, -203]
+    },
+    "matched_spectrogram_data": {
+      "width": 256,
+      "height": 128,
+      "pixel_values": [
+        [0, 32, 15, 12],
+        [12, 45, 78, 16],
+        [18, 62, 43, 24],
+        [41, 45, 64, 44]
+      ]
+    }
+}```
+
+
