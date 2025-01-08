@@ -11,6 +11,15 @@ def linear_interp(lower: float, upper: float, alpha: float = 0.5) -> float:
     return lower + alpha * (upper - lower)
 
 
+def vector_lerp(x, y, alpha):
+    """
+    Linear interpolation between two scalars or arrays x and y,
+    parameterized by alpha in [0, 1].
+    Returns (1 - alpha)*x + alpha*y
+    """
+    return (1 - alpha) * x + alpha * y
+
+
 def mse(y_true, y_pred) -> float:
     """
     Calculate the mean squared error between y_true and y_pred
