@@ -203,6 +203,29 @@ class Environment:
         self.set_synth_params(parameters=params)
 
         return self.synth_host.play_note(note=64, note_duration=self.note_length), params
+    
+    def set_and_play_target_parameters(self, params):
+        '''
+        Takes updated target parameters and returns audio & spectrogram
+        '''
+        # Save current settings to prevent issues with incremental control setting
+        current_settings = self.get_synth_params()
+        
+        # Create target sound
+        # self.target_sound, _ = self.play_sound_set_params(params)
+        self.set_synth_params(parameters=params)
+        self.target_sound = self.synth_host.play_note(note=64, note_duration=self.note_length)
+        self.target_params = params
+
+        # Update target audio
+        self.target_audio.update_sample(audio_sample=self.target_sound)
+        target_spectrogram = self.target_audio.spectrogram
+
+        # Reset synth to 'current' state, to prevent issues with incremental control setting
+        self.set_synth_params(parameters=current_settings)
+
+        return self.target_sound, target_spectrogram
+
 
     def calculate_state(self, form=None):
         form = form if form else self.default_state_form
