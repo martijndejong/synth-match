@@ -1,0 +1,8 @@
+# Maps host synth names to names as sent through the API
+# Format: "host parameter name" : "API parameter name"
+synth_parameter_mapping:
+  attack: amplitude_attack
+  decay: amplitude_decay
+  sustain: amplitude_sustain
+  release: amplitude_release
+  cutoff_freq: filter_cutoff_frequency
