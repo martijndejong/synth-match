@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import KnobComponent from './components/KnobComponent.vue';
 import AudioPlayer from './components/AudioPlayer.vue'; // Import the AudioPlayer component
 import ADSRChart from './components/ADSRChart.vue'; // Import the new ADSRChart
+import LoggingComponent from './components/LoggingComponent.vue' // Import LoggingComponent
 
 // Reactive array to store knob values
 const knobValues = ref({
@@ -49,6 +50,8 @@ const knobValues = ref({
 
     <!-- Line Chart Component -->
     <ADSRChart />
+
+    <LoggingComponent />
 
   </main>
 </template>
