@@ -51,7 +51,7 @@ class TD3Agent(tf.keras.Model):
 
     def build_actor(self):
         model = models.Sequential([
-            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1] + self.action_dim,)),
+            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1],)),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(self.action_dim, activation='tanh'),  # For incremental continuous actions
@@ -62,7 +62,7 @@ class TD3Agent(tf.keras.Model):
 
     def build_critic(self):
         model = models.Sequential([
-            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1] + self.action_dim * 2,)),
+            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1] + self.action_dim,)),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(1, activation='linear')
