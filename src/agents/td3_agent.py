@@ -51,7 +51,7 @@ class TD3Agent(tf.keras.Model):
 
     def build_actor(self):
         model = models.Sequential([
-            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1] + self.action_dim,)),
+            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1],)),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(self.action_dim, activation='tanh'),  # For incremental continuous actions
@@ -62,50 +62,45 @@ class TD3Agent(tf.keras.Model):
 
     def build_critic(self):
         model = models.Sequential([
-            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1] + self.action_dim * 2,)),
+            layers.InputLayer(input_shape=(self.observer_network.output_shape[-1] + self.action_dim,)),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(self.hidden_dim, activation='relu'),
             layers.Dense(1, activation='linear')
         ])
         return model
 
-    def call(self, inputs, synth_params, training=False, action=None):
+    def call(self, inputs, training=False, action=None):
         # This method is not typically used in TD3, but we'll implement it to maintain compatibility
         features = self.observer_network(inputs, training=training)
-        concat_input = tf.concat([features, synth_params], axis=-1)
 
         # Actor forward pass
-        actor_output = self.actor(concat_input)
+        actor_output = self.actor(features)
 
         # Critic forward pass
         if action is None:
             action = actor_output
-        critic_input = tf.concat([concat_input, action], axis=-1)
+        critic_input = tf.concat([features, action], axis=-1)
         q1 = self.critic_1(critic_input)
         q2 = self.critic_2(critic_input)
 
         # Return actor output and minimum of the two critic outputs
         return actor_output, tf.minimum(q1, q2)
 
-    def act(self, state, synth_params):
+    def act(self, state):
         state = tf.expand_dims(state, 0)
-        synth_params = tf.expand_dims(synth_params, 0)
         features = self.observer_network(state)
-        concat_input = tf.concat([features, synth_params], axis=-1)
-        action = self.actor(concat_input)
+        action = self.actor(features)
         return action[0].numpy()
 
     def train_step(self, data):
         self.total_it += 1
 
-        states, synth_params, actions, rewards, next_states, next_synth_params, dones = data
+        states, actions, rewards, next_states, dones = data
 
         states = tf.convert_to_tensor(states, dtype=tf.float32)
-        synth_params = tf.convert_to_tensor(synth_params, dtype=tf.float32)
         actions = tf.convert_to_tensor(actions, dtype=tf.float32)
         rewards = tf.convert_to_tensor(rewards, dtype=tf.float32)
         next_states = tf.convert_to_tensor(next_states, dtype=tf.float32)
-        next_synth_params = tf.convert_to_tensor(next_synth_params, dtype=tf.float32)
         dones = tf.convert_to_tensor(dones, dtype=tf.float32)
 
         # Update Critic networks
@@ -114,28 +109,24 @@ class TD3Agent(tf.keras.Model):
             features = self.observer_network(states, training=True)
             next_features = self.observer_network(next_states, training=True)
 
-            # Concatenate features with synth_params
-            concat_input = tf.concat([features, synth_params], axis=-1)
-            next_concat_input = tf.concat([next_features, next_synth_params], axis=-1)
-
             # Target policy smoothing
             noise = tf.clip_by_value(
                 tf.random.normal(shape=actions.shape, stddev=self.policy_noise),
                 -self.noise_clip, self.noise_clip)
 
             # Compute target actions
-            next_actions = self.actor_target(next_concat_input)
+            next_actions = self.actor_target(next_features)
             next_actions = tf.clip_by_value(next_actions + noise, -1.0, 1.0)
 
             # Compute target Q-values
-            target_critic_input = tf.concat([next_concat_input, next_actions], axis=-1)
+            target_critic_input = tf.concat([next_features, next_actions], axis=-1)
             target_q1 = self.critic_1_target(target_critic_input)
             target_q2 = self.critic_2_target(target_critic_input)
             target_q = tf.minimum(target_q1, target_q2)
             target_q = rewards + (1 - dones) * self.gamma * tf.squeeze(target_q, axis=1)
 
             # Current Q-values
-            critic_input = tf.concat([concat_input, actions], axis=-1)
+            critic_input = tf.concat([features, actions], axis=-1)
             current_q1 = tf.squeeze(self.critic_1(critic_input), axis=1)
             current_q2 = tf.squeeze(self.critic_2(critic_input), axis=1)
 
@@ -161,8 +152,8 @@ class TD3Agent(tf.keras.Model):
         if self.total_it % self.policy_delay == 0:
             with tf.GradientTape() as tape_actor:
                 # Compute actor loss
-                actor_actions = self.actor(concat_input)
-                actor_critic_input = tf.concat([concat_input, actor_actions], axis=-1)
+                actor_actions = self.actor(features)
+                actor_critic_input = tf.concat([features, actor_actions], axis=-1)
                 actor_q1 = self.critic_1(actor_critic_input)
                 actor_loss = -tf.reduce_mean(actor_q1)
 
@@ -211,8 +202,21 @@ class TD3Agent(tf.keras.Model):
 
     def save_end_to_end(self, filepath):
         """
-        Saves the entire TD3Agent (including observer, actor, critics)
+        Saves the entire TD3Agent (including observer, actor, and critics)
         to `filepath` using the Keras SavedModel format.
         """
-        # Keras will trace `self.call`, capturing sub-layers automatically.
+        # 1) Construct a dummy input with the shape your observer network expects.
+        #    E.g., if observer_network expects an input of shape (H, W, C) for images:
+        #         dummy_input = tf.zeros((1, H, W, C), dtype=tf.float32)
+        #    If it expects a 1D vector of size S:
+        #         dummy_input = tf.zeros((1, S), dtype=tf.float32)
+        #
+        #    For example:
+        input_shape = self.observer_network.input_shape  # or self.observer_network.layers[0].input_shape
+        dummy_input = tf.zeros((1,) + input_shape[1:], dtype=tf.float32)
+
+        # 2) Make a forward pass to build all internal layers
+        _ = self(dummy_input, training=False)
+
+        # 3) Now that the model is built, Keras can save it
         tf.keras.models.save_model(self, filepath, save_format='tf')
