@@ -1,7 +1,7 @@
 experiment:
   project_name: "SynthRLProject"
   group: "end_to_end"
-  run_name: "decaying_expert_correction"
+  run_name: "decaying_expert_correction_frozen_observer"
 
 environment:
   sampling_rate: 44100.0
@@ -23,7 +23,7 @@ replay_buffer:
 
 training:
   num_episodes: 2000
-  trainable_observer: true
+  trainable_observer: false
 
 expert_correction:
   enabled: true       # set to false if you want to disable the blending
