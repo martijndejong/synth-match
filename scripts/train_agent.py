@@ -105,32 +105,28 @@ def main():
 
     for episode in tqdm(range(num_episodes), desc="Training agent on simulated experiences"):
         state = env.reset()
-        synth_params = env.get_synth_params()
         done = False
         episode_reward = 0.0
 
         while not done:
-            action = agent.act(state, synth_params)
+            action = agent.act(state)
             next_state, reward, done = env.step(action)
-            next_synth_params = env.get_synth_params()
             episode_reward += reward
 
             # Store experience
             replay_memory.add(
-                (state, synth_params, action, reward, next_state, next_synth_params, done)
+                (state, action, reward, next_state, done)
             )
 
             # Train if buffer is large enough
             if len(replay_memory) > batch_size:
                 batch = replay_memory.sample(batch_size)
-                states, synths, actions, rewards, nxt_states, nxt_synths, dones = map(
+                states, actions, rewards, next_states, dones = map(
                     np.array, zip(*batch)
                 )
-                agent.train_step((states, synths, actions, rewards,
-                                  nxt_states, nxt_synths, dones))
+                agent.train_step((states, actions, rewards, next_states, dones))
 
             state = next_state
-            synth_params = next_synth_params
 
         print(f"[INFO] Episode {episode + 1}, Reward: {episode_reward:.2f}")
         wandb.log({"episode": episode + 1, "reward": episode_reward})
