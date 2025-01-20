@@ -202,8 +202,21 @@ class TD3Agent(tf.keras.Model):
 
     def save_end_to_end(self, filepath):
         """
-        Saves the entire TD3Agent (including observer, actor, critics)
+        Saves the entire TD3Agent (including observer, actor, and critics)
         to `filepath` using the Keras SavedModel format.
         """
-        # Keras will trace `self.call`, capturing sub-layers automatically.
+        # 1) Construct a dummy input with the shape your observer network expects.
+        #    E.g., if observer_network expects an input of shape (H, W, C) for images:
+        #         dummy_input = tf.zeros((1, H, W, C), dtype=tf.float32)
+        #    If it expects a 1D vector of size S:
+        #         dummy_input = tf.zeros((1, S), dtype=tf.float32)
+        #
+        #    For example:
+        input_shape = self.observer_network.input_shape  # or self.observer_network.layers[0].input_shape
+        dummy_input = tf.zeros((1,) + input_shape[1:], dtype=tf.float32)
+
+        # 2) Make a forward pass to build all internal layers
+        _ = self(dummy_input, training=False)
+
+        # 3) Now that the model is built, Keras can save it
         tf.keras.models.save_model(self, filepath, save_format='tf')
