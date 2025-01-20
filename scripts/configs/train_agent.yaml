@@ -1,7 +1,7 @@
 experiment:
   project_name: "SynthRLProject"
   group: "agent"
-  run_name: "first_wandb_agent_training"
+  run_name: "spectrogram_only_state"
 
 environment:
   sampling_rate: 44100.0
@@ -22,7 +22,7 @@ replay_buffer:
   batch_size: 128
 
 training:
-  num_episodes: 1000
+  num_episodes: 2000
   trainable_observer: false
 
 model_loading:
