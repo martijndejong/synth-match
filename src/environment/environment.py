@@ -273,7 +273,7 @@ class Environment:
 
     def check_if_done(self, similarity_score):
         max_steps = 100
-        if similarity_score >= 0.95:
+        if similarity_score >= 0.99:
         # print(similarity_score)
         # similarity_score (= euclidean_stance (inherently squared)) >= -0.01 worked well with SuperSimpleSynth
         # if similarity_score >= -0.1:
