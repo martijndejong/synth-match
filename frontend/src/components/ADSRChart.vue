@@ -18,7 +18,7 @@
   });
 
   // TODO: Make these dynamic from the match parameter output
-  const adsrValues2 = ref({
+  const match_adsr_values = ref({
     Attack: 30,  // Constant value
     Decay: 50,   // Constant value
     Sustain: 30, // Constant value
@@ -130,7 +130,7 @@
   
   // Helper function to generate the fixed ADSR envelope based on hardcoded values
   function generateFixedADSREnvelope() {
-    const { Attack, Decay, Sustain, Release } = adsrValues2.value;
+    const { Attack, Decay, Sustain, Release } = match_adsr_values.value;
   
     // Time durations in seconds, based on knob values (0.5s max)
     const attackTime = (Attack / 100) * 0.5;
