@@ -1,0 +1,41 @@
+parameters:
+  - id: filter_cutoff_frequency
+    display_name: Cutoff Frequency
+    min: 20
+    max: 20000
+    scaling_factor: 1
+    default_value: 1000
+    step: 1
+    scale_type: logarithmic
+  - id: amplitude_attack
+    display_name: Attack
+    min: 0
+    max: 5
+    scaling_factor: 1
+    default_value: 0.5
+    step: 0.01
+    scale_type: linear
+  - id: amplitude_decay
+    display_name: Decay
+    min: 0
+    max: 5
+    scaling_factor: 1
+    default_value: 0.5
+    step: 0.01
+    scale_type: linear
+  - id: amplitude_sustain
+    display_name: Sustain
+    min: 0
+    max: 1
+    scaling_factor: 1
+    default_value: 0.7
+    step: 0.01
+    scale_type: linear
+  - id: amplitude_release
+    display_name: Release
+    min: 0
+    max: 5
+    scaling_factor: 1
+    default_value: 0.5
+    step: 0.01
+    scale_type: linear
