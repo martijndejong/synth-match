@@ -1,3 +1,4 @@
+# Note: this configuration is likely temporary | TODO - Figure out if linking to one centralized config is preferred or not
 experiment:
   project_name: "SynthRLProject"
   group: "end_to_end"
@@ -32,8 +33,7 @@ model_loading:
 
   load_pretrained_agent: true
   # This is the subfolder name you want to load from (if any)
-  # agent_subfolder: "20250107_0107_first_wandb_agent_training"
-  agent_subfolder: "20250120_1901_spectrogram_only_state"
+  agent_subfolder: "20250107_0107_first_wandb_agent_training"
 
 model_saving:
   base_dir: "../saved_models/end_to_end"

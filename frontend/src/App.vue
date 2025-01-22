@@ -4,6 +4,9 @@ import KnobComponent from './components/KnobComponent.vue';
 import AudioPlayer from './components/AudioPlayer.vue'; // Import the AudioPlayer component
 import ADSRChart from './components/ADSRChart.vue'; // Import the new ADSRChart
 import LoggingComponent from './components/LoggingComponent.vue' // Import LoggingComponent
+import MatchKnobs from './components/MatchKnobs.vue'; // Import KnobControls
+import { loadKnobsFromYaml } from './utils/loadKnobs';   // Import utility function
+
 
 // Reactive array to store knob values
 const knobValues = ref({
@@ -13,6 +16,60 @@ const knobValues = ref({
   'Sustain': 0,
   'Release': 0,
 });
+
+const knobs = [
+        {
+          id: 'filter_cutoff_frequency',
+          display_name: 'Cutoff Frequency',
+          min: 20,
+          max: 20000,
+          scaling_factor: 1,
+          default_value: 1000,
+          step: 1,
+          scale_type: 'logarithmic',
+        },
+        {
+          id: 'amplitude_attack',
+          display_name: 'Attack',
+          min: 0,
+          max: 5,
+          scaling_factor: 1,
+          default_value: 0.5,
+          step: 0.01,
+          scale_type: 'linear',
+        },
+        {
+          id: 'amplitude_decay',
+          display_name: 'Decay',
+          min: 0,
+          max: 5,
+          scaling_factor: 1,
+          default_value: 0.5,
+          step: 0.01,
+          scale_type: 'linear',
+        },
+        {
+          id: 'amplitude_sustain',
+          display_name: 'Sustain',
+          min: 0,
+          max: 1,
+          scaling_factor: 1,
+          default_value: 0.7,
+          step: 0.01,
+          scale_type: 'linear',
+        },
+        {
+          id: 'amplitude_release',
+          display_name: 'Release',
+          min: 0,
+          max: 5,
+          scaling_factor: 1,
+          default_value: 0.5,
+          step: 0.01,
+          scale_type: 'linear',
+        },
+      ];
+
 </script>
 
 <template>
@@ -53,6 +110,10 @@ const knobValues = ref({
 
     <LoggingComponent />
 
+      <div class="controls-section">
+        <!-- Knob Controls Section -->
+        <MatchKnobs :knobs="knobs" :knobValues="knobValues" />
+      </div>
   </main>
 </template>
 

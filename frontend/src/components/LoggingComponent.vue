@@ -23,10 +23,10 @@ const initializeWebSocket = () => {
     console.log(`WebSocket connection error: ${err}`);
   });
 
-  // Listen for 'send_match' events from the backend
-  socket.on("send_match", (data) => {
-    console.log(`Received 'send_match' data: ${JSON.stringify(data)}`);
-  });
+  // // Listen for 'send_match' events from the backend
+  // socket.on("send_match", (data) => {
+  //   console.log(`Received 'send_match' data: ${JSON.stringify(data)}`);
+  // });
 };
 
 // Call the WebSocket initialization when the component is mounted
