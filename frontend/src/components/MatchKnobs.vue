@@ -1,3 +1,4 @@
+<!-- TODO - Add scaling of match synth parameters to min max range of parameters and linear/logarithmic scaling  -->
 <template>
   <div class="button-row">
     <div v-for="knob in localKnobs" :key="knob.id" class="knob-item">

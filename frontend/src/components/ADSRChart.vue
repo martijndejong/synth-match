@@ -17,7 +17,6 @@ const target_adsr_values = ref({
   Release: 100, // Default value
 });
 
-// TODO: Make these dynamic from the match parameter output
 const match_adsr_values = ref({
   Attack: 30,  // Constant value
   Decay: 50,   // Constant value

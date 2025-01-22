@@ -65,4 +65,4 @@ if __name__ == "__main__":
 
     # Run periodic random match and send
     print("Starting period random match loop")
-    match_random_and_send_periodically(env, agent, mapping_file=mapping_path, sleep=10)
+    match_random_and_send_periodically(env, agent, mapping_file=mapping_path, sleep=3)
