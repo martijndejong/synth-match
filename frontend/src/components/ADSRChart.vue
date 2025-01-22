@@ -187,7 +187,7 @@
   <style scoped>
   .chart-container {
     width: 100%;
-    max-width: 1000px;
+    max-width: 800px;
     margin-top: 2rem;
     text-align: center;
   }
