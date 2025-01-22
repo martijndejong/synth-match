@@ -4,6 +4,7 @@ from src.observers import build_spectrogram_observer
 from src.agents import TD3Agent
 from src.utils.replay_buffer import ReplayBuffer
 from src.utils.audio_processor import AudioProcessor
+import tensorflow as tf
 import os
 import numpy as np
 import json
@@ -66,6 +67,15 @@ def initialize_agent(env, config):
     
     return agent
 
+# New function | TODO - implement and test new agent initialization function
+# def initialize_agent(config):
+#     saved_agent = "saved_models/end_to_end/20250121_0031_099_ssim_frozen_observer"
+#     agent = tf.keras.models.load_model(saved_agent,
+#     custom_objects={"TD3Agent": TD3Agent}    
+#     )
+
+#     return agent
+
 def match_random_sound(env, agent):
     """
     Matches the target sound using the given environment and agent.
@@ -74,10 +84,16 @@ def match_random_sound(env, agent):
     synth_params = env.get_synth_params()
     done = False
 
+    # while not done:
+    #     action = agent.act(state, synth_params)
+    #     next_state, reward, done = env.step(action)
+    #     synth_params = env.get_synth_params()
+    #     state = next_state
+
+    # Try other loop in new setup
     while not done:
-        action = agent.act(state, synth_params)
+        action = agent.act(state)
         next_state, reward, done = env.step(action)
-        synth_params = env.get_synth_params()
         state = next_state
 
     return env
