@@ -10,7 +10,7 @@
   import { io } from 'socket.io-client';
   
   // Reactive object to store the current values for Attack, Decay, Sustain, Release
-  const adsrValues = ref({
+  const target_adsr_values = ref({
     Attack: 100,  // Default value
     Decay: 100,   // Default value
     Sustain: 100, // Default value
@@ -95,7 +95,7 @@
   
   // Helper function to generate the dynamic ADSR envelope based on stored values
   function generateDynamicADSREnvelope() {
-    const { Attack, Decay, Sustain, Release } = adsrValues.value;
+    const { Attack, Decay, Sustain, Release } = target_adsr_values.value;
   
     // Time durations in seconds, based on knob values (0.5s max)
     const attackTime = (Attack / 100) * 0.5;
@@ -165,14 +165,31 @@
   // Initialize WebSocket connection
   const socket = io('http://127.0.0.1:5000');
   
-  // Function to update the specific ADSR value based on incoming knob updates
+  // Function to update the target ADSR value based on incoming knob update
   socket.on('knob_update', (data) => {
-    if (data.id in adsrValues.value) {
-      adsrValues.value[data.id] = data.value;
+    if (data.id in target_adsr_values.value) {
+      target_adsr_values.value[data.id] = data.value;
       generateDynamicADSREnvelope(); // Regenerate the dynamic envelope
       generateFixedADSREnvelope();   // Regenerate the fixed envelope
-    }
-  
+    }  
+    chartData.value = { ...chartData.value }; // Update chart data
+  });
+
+  // Function to update the match ADSR value based on incoming match JSON
+  socket.on('send_match', (data) => {
+    if (data.matched_parameters) {
+          console.log('Updating ADSR plot with matched parameters');
+          // Extract and update relevant match parameters
+          const { amplitude_attack, amplitude_decay, amplitude_sustain, amplitude_release } = data.matched_parameters;
+          match_adsr_values.value = {
+            Attack: amplitude_attack * 100,
+            Decay: amplitude_decay * 100,
+            Sustain: amplitude_sustain * 100,
+            Release: amplitude_release * 100
+          };
+          generateDynamicADSREnvelope(); // Regenerate the dynamic envelope
+          generateFixedADSREnvelope();   // Regenerate the fixed envelope
+    }    
     chartData.value = { ...chartData.value }; // Update chart data
   });
   
