@@ -200,6 +200,11 @@ class TD3Agent(tf.keras.Model):
         self.critic_1_target.load_weights(critic_path + '_1.h5')
         self.critic_2_target.load_weights(critic_path + '_2.h5')
 
+    def load_actor_weights(self, filepath):
+        actor_path = f"{filepath}/actor_weights.h5"
+        self.actor.load_weights(actor_path)
+        self.actor_target.load_weights(actor_path)
+
     def save_end_to_end(self, filepath):
         """
         Saves the entire TD3Agent (including observer, actor, and critics)
