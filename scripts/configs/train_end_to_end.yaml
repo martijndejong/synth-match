@@ -30,13 +30,13 @@ model_loading:
   # This is the subfolder name you want to load from (if any)
   observer_subfolder: "20250106_2043_try_original_settings_again"
 
-  load_pretrained_agent: true
+  load_pretrained_agent: false
   # This is the subfolder name you want to load from (if any)
   agent_subfolder: "20250120_1901_spectrogram_only_state"
 
   # Optionally load just the actor weights (from pretrain_actor.py)
   load_actor_weights: true
-  actor_subfolder: "20250122_1535_pretrained_actor_run"
+  actor_subfolder: "20250123_0632_pretrain_actor_frozen_observer"
 
 model_saving:
   base_dir: "../saved_models/end_to_end"
