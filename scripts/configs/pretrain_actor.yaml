@@ -1,0 +1,26 @@
+experiment:
+  project_name: "SynthRLProject"
+  group: "actor_pretraining"
+  run_name: "pretrain_actor_frozen_observer"
+
+training:
+  batch_size: 64
+  epochs: 15
+  val_fraction: 0.1
+  num_samples: 500000
+
+observer:
+  # Match the feature_dim so the Actor's input size remains consistent
+  feature_dim: 128
+  # If you have a trained observer weights file, place its path here (relative or absolute).
+  # The script 'pretrain_actor.py' will load these weights and freeze them.
+  pretrained_weights_path: "../saved_models/observer/20250106_2043_try_original_settings_again/observer_weights.h5"
+
+data:
+  # Same directory and TFRecord file as in 'train_observer.yaml'
+  directory: "../data/labeled_spectrograms"
+  tfrecord_filename: "SimpleSynth_original.tfrecords"
+
+model_saving:
+  # A new directory for saving actor pretraining results (parallel to the observer)
+  base_dir: "../saved_models/actor_pretraining"
