@@ -88,6 +88,13 @@ def main():
         agent.load_actor_critic_weights(load_dir)
         print(f"[INFO] Loaded pretrained agent from {load_dir}")
 
+    # 6b) Optionally load *only* the actor weights (from pretrain_actor.py)
+    if config["model_loading"].get("load_actor_weights", False):
+        actor_path = os.path.join(script_dir, "..", "saved_models", "actor_pretraining")
+        actor_subfolder = config["model_loading"]["actor_subfolder"]
+        load_dir = os.path.join(actor_path, actor_subfolder)
+        agent.load_actor_weights(load_dir)
+
     # --- 7) Initialize replay buffer ---
     replay_memory = ReplayBuffer(capacity=config["replay_buffer"]["capacity"])
 
