@@ -14,6 +14,7 @@
 	- ~~With parameters e.g.: name, is_visualized, min_val, max_val, color ~~
 - [x] Add dynamic matched parameters to visualize match synth settings
 - [x] Integrate ADSR plot with matched parameter API call
+- [x] Add scaling to match knobs to match min/max and linear/logarithmic
 #### Ideas
 ##### ML
 - [ ] Increase parameter space with cutoff frequency ADSR
@@ -31,6 +32,6 @@
 - [ ] Make ADSR plot time settings dynamic from the match parameter output
 - [ ] Centralize ADSR plot styling
 - [ ] Improve target synth knobs (see TODOs in file)
-- [ ] Add scaling to match knobs to match min/max and linear/logarithmic
+
 ##### Integration
 - [x] Draft API design

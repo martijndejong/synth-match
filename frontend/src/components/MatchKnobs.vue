@@ -3,14 +3,8 @@
   <div class="button-row">
     <div v-for="knob in localKnobs" :key="knob.id" class="knob-item">
       <!-- Knob component for controlling values -->
-      <Knob
-        v-model="knob.default_value"
-        :min="knob.min"
-        :max="knob.max"
-        :step="knob.step"
-        valueColor="#4287f5"
-        readonly 
-      />
+      <Knob v-model="knob.default_value" :min="knob.min" :max="knob.max" :step="knob.step" valueColor="#4287f5"
+        readonly />
       <span class="knob-label">{{ knob.display_name }}</span>
     </div>
   </div>
@@ -44,7 +38,6 @@ export default {
 
       this.socket.on('send_match', (data) => {
         if (data.matched_parameters) {
-          console.log('Updating knobs with matched parameters');
           this.updateKnobValues(data.matched_parameters);
         }
       });
@@ -54,18 +47,36 @@ export default {
     },
     setKnobValue(id, value) {
       const knob = this.localKnobs.find((k) => k.id === id);
-      console.log("trying to find", id);
-      console.log("in: ");
-      console.log('Knob IDs:', this.localKnobs.map(knob => knob.id));
       if (knob) {
-        knob.default_value = value;        
+        let scaledValue;
+
+        // Apply scaling based on the selected type
+        if (knob.scale_type === 'logarithmic') {
+          if (knob.min <= 0) {
+            console.error("Logarithmic scaling requires positive min values.");
+            return;
+          }
+          scaledValue = Math.pow(10, value * (Math.log10(knob.max) - Math.log10(knob.min)) + Math.log10(knob.min));
+        } else {
+          // Default to linear scaling
+          scaledValue = (knob.max - knob.min) * value + knob.min;
+        }
+
+        // Determine display precision: 2 decimals for small values, round for large
+        const roundedValue = scaledValue < 10
+          ? parseFloat(scaledValue.toFixed(2))
+          : Math.round(scaledValue);
+
+        // Assign the computed value to knob.default_value
+        knob.default_value = roundedValue;
       }
-    },
+    }
+    ,
     updateKnobValues(matchedParameters) {
       for (const [id, value] of Object.entries(matchedParameters)) {
-        const rounded_value = value.toFixed(2)
-        console.log('Setting knob:', id, 'to value:', rounded_value)
-        this.setKnobValue(id, rounded_value);
+        // const scaled_value = value
+        // const rounded_value = scaled_value.toFixed(2)
+        this.setKnobValue(id, value);
       }
     },
   },
@@ -84,11 +95,13 @@ export default {
 .knob-container {
   margin-bottom: 20px;
 }
+
 .knob-label {
   font-size: 1rem;
   margin-top: 0.5rem;
   font-weight: bold;
 }
+
 .button-row {
   display: flex;
   justify-content: space-between;
@@ -97,6 +110,7 @@ export default {
   flex-wrap: wrap;
   justify-content: center;
 }
+
 .knob-item {
   display: flex;
   flex-direction: column;
