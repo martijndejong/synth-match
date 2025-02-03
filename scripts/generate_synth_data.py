@@ -4,11 +4,7 @@ from src.environment.environment import Environment
 from src.synthesizers import Host, SimpleSynth
 from tqdm import tqdm
 
-# Set constants
-SAMPLING_RATE = 44100.0
-NOTE_LENGTH = 0.5
-NUM_SAMPLES = 500000
-BATCH_SIZE = 1000
+from src.utils.config_manager import Config
 
 
 def serialize_example(spectrogram, param_error):
@@ -28,6 +24,18 @@ def serialize_example(spectrogram, param_error):
 def main():
     # Get the script's directory
     script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    config = Config()
+    config_path = os.path.join(script_dir, "configs", "generate_synth_data.yaml")
+    config.load(config_path)
+
+    # Set constants
+    SAMPLING_RATE = config["synthesizer"]["sampling_rate"]
+    NOTE_LENGTH = config["synthesizer"]["note_length"]
+    NUM_SAMPLES = config["data"]["num_samples"]
+    BATCH_SIZE = config["data"]["batch_size"]
+    FILENAME = config["data"]["filename"]
+
     data_dir = os.path.join(script_dir, '..', 'data', 'labeled_spectrograms')
     os.makedirs(data_dir, exist_ok=True)
 
@@ -51,7 +59,7 @@ def main():
     print(f"Spectrogram shape: {spectrogram_shape}, Parameter error shape: {param_shape}")
 
     # Write TFRecords
-    tfrecord_path = os.path.join(data_dir, 'SimpleSynth_original.tfrecords')
+    tfrecord_path = os.path.join(data_dir, f'{FILENAME}.tfrecords')
     print(f"Writing TFRecords to {tfrecord_path} ...")
 
     with tf.io.TFRecordWriter(tfrecord_path) as writer:
