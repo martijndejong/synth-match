@@ -1,32 +1,48 @@
 import numpy as np
+from scipy.signal import butter, lfilter
 
 
-def variable_lowpass_filter(data, cutoff_env, sample_rate):
+def variable_lowpass_filter(data, cutoff_env, sample_rate, order=5, block_size=256):
     """
-    Apply a simple one–pole low–pass filter whose cutoff frequency varies over time.
+    Apply a variable low–pass filter using a block–based approach.
 
-    The filter uses the following recurrence for each sample n:
-       y[n] = alpha[n] * x[n] + (1 - alpha[n]) * y[n-1],
-    where:
-       alpha[n] = dt / (RC + dt)   with   RC = 1 / (2*pi*cutoff[n])   and   dt = 1/sample_rate
+    This function assumes that the cutoff frequency remains nearly constant over
+    a block of samples (of length block_size). For each block, it computes the
+    average cutoff frequency from cutoff_env, designs a Butterworth filter using
+    that average value, and applies lfilter to the block. The filter state is passed
+    from one block to the next to maintain continuity.
 
     Parameters:
       data (np.ndarray): Input signal.
-      cutoff_env (np.ndarray): Array of cutoff frequencies (Hz) for each sample.
+      cutoff_env (np.ndarray): Array of cutoff frequencies (Hz) per sample.
       sample_rate (float): Sample rate in Hz.
+      order (int): Order of the Butterworth filter.
+      block_size (int): Number of samples per block.
 
     Returns:
-      filtered (np.ndarray): The filtered signal.
+      np.ndarray: The filtered signal.
     """
-    dt = 1.0 / sample_rate
-    filtered = np.zeros_like(data)
-    filtered[0] = data[0]
-    for n in range(1, len(data)):
-        fc = cutoff_env[n]
-        # Prevent division by zero or extremely low cutoff values:
-        if fc < 1e-6:
-            fc = 1e-6
-        RC = 1.0 / (2 * np.pi * fc)
-        alpha = dt / (RC + dt)
-        filtered[n] = alpha * data[n] + (1 - alpha) * filtered[n - 1]
-    return filtered
+    nyquist = 0.5 * sample_rate
+    filtered_data = np.empty_like(data)
+
+    # Initialize filter state. For a Butterworth filter of given order, the b and a
+    # coefficients have length order+1, so the state length is order (or max(len(b), len(a))-1).
+    zi = None
+
+    # Process data in blocks.
+    for start in range(0, len(data), block_size):
+        end = min(start + block_size, len(data))
+        # Average the cutoff frequency over the block.
+        block_cutoff = np.mean(cutoff_env[start:end])
+        # Normalize cutoff frequency.
+        normal_cutoff = block_cutoff / nyquist
+        # Design the filter with the block's (assumed constant) cutoff frequency.
+        b, a = butter(order, normal_cutoff, btype='low', analog=False)
+        # Initialize the filter state for the first block.
+        if zi is None:
+            zi = np.zeros(max(len(a), len(b)) - 1)
+        # Filter the current block, updating the state.
+        block_out, zi = lfilter(b, a, data[start:end], zi=zi)
+        filtered_data[start:end] = block_out
+
+    return filtered_data
