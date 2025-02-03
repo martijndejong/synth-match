@@ -1,6 +1,6 @@
 experiment:
   project_name: "SynthRLProject"
-  group: "actor_pretraining"
+  group: "actor"
   run_name: "pretrain_actor_frozen_observer"
 
 training:
@@ -17,10 +17,10 @@ observer:
   pretrained_weights_path: "../saved_models/observer/20250106_2043_try_original_settings_again/observer_weights.h5"
 
 data:
-  # Same directory and TFRecord file as in 'train_observer.yaml'
+  # Same directory and TFRecord file as in 'pretrain_observer.yaml'
   directory: "../data/labeled_spectrograms"
   tfrecord_filename: "SimpleSynth_original.tfrecords"
 
 model_saving:
   # A new directory for saving actor pretraining results (parallel to the observer)
-  base_dir: "../saved_models/actor_pretraining"
+  base_dir: "../saved_models/actor"

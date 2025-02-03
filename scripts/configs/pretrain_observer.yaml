@@ -14,10 +14,10 @@ observer:
   feature_dim: 128
 
 data:
-  # Relative to the location of train_observer.py
+  # Relative to the location of pretrain_observer.py
   directory: "../data/labeled_spectrograms"
   tfrecord_filename: "SimpleSynth_original.tfrecords"
 
 model_saving:
-  # Relative to the location of train_observer.py
+  # Relative to the location of pretrain_observer.py
   base_dir: "../saved_models/observer"
