@@ -1,7 +1,7 @@
 experiment:
   project_name: "SynthRLProject"
   group: "end_to_end"
-  run_name: "ssim_frozen_observer"
+  run_name: "099_ssim_frozen_observer_0_pretrain"
 
 environment:
   sampling_rate: 44100.0
@@ -23,7 +23,7 @@ replay_buffer:
 
 training:
   num_episodes: 2000
-  trainable_observer: true
+  trainable_observer: false
 
 model_loading:
   load_observer_weights: true
@@ -35,7 +35,7 @@ model_loading:
   agent_subfolder: "20250120_1901_spectrogram_only_state"
 
   # Optionally load just the actor weights (from pretrain_actor.py)
-  load_actor_weights: true
+  load_actor_weights: false
   actor_subfolder: "20250123_0632_pretrain_actor_frozen_observer"
 
 model_saving:
