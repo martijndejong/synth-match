@@ -1,11 +1,11 @@
 experiment:
   project_name: "SynthRLProject"
   group: "actor"
-  run_name: "pretrain_actor_frozen_observer"
+  run_name: "pretrain_actor_cutoff_adsr"
 
 training:
   batch_size: 64
-  epochs: 15
+  epochs: 5
   val_fraction: 0.1
   num_samples: 500000
 
@@ -14,12 +14,12 @@ observer:
   feature_dim: 128
   # If you have a trained observer weights file, place its path here (relative or absolute).
   # The script 'pretrain_actor.py' will load these weights and freeze them.
-  pretrained_weights_path: "../saved_models/observer/20250106_2043_try_original_settings_again/observer_weights.h5"
+  pretrained_weights_path: "../saved_models/observer/20250203_1642_first_try_cutoff_adsr/observer_weights.h5"
 
 data:
   # Same directory and TFRecord file as in 'pretrain_observer.yaml'
   directory: "../data/labeled_spectrograms"
-  tfrecord_filename: "SimpleSynth_original.tfrecords"
+  tfrecord_filename: "SimpleSynthCutOffADSR.tfrecords"
 
 model_saving:
   # A new directory for saving actor pretraining results (parallel to the observer)

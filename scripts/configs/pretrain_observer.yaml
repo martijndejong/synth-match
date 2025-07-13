@@ -1,7 +1,7 @@
 experiment:
   project_name: "SynthRLProject"
   group: "observer"
-  run_name: "try_original_settings_again"
+  run_name: "first_try_cutoff_adsr"
 
 training:
   batch_size: 64
@@ -16,7 +16,7 @@ observer:
 data:
   # Relative to the location of pretrain_observer.py
   directory: "../data/labeled_spectrograms"
-  tfrecord_filename: "SimpleSynth_original.tfrecords"
+  tfrecord_filename: "SimpleSynthCutOffADSR.tfrecords"
 
 model_saving:
   # Relative to the location of pretrain_observer.py

@@ -1,7 +1,7 @@
 experiment:
   project_name: "SynthRLProject"
   group: "end_to_end"
-  run_name: "099_ssim_frozen_observer_0_pretrain"
+  run_name: "base_cutoff_adsr_simple_reward"
 
 environment:
   sampling_rate: 44100.0
@@ -22,13 +22,13 @@ replay_buffer:
   batch_size: 128
 
 training:
-  num_episodes: 2000
+  num_episodes: 3000
   trainable_observer: false
 
 model_loading:
   load_observer_weights: true
   # This is the subfolder name you want to load from (if any)
-  observer_subfolder: "20250106_2043_try_original_settings_again"
+  observer_subfolder: "20250203_1642_first_try_cutoff_adsr"
 
   load_pretrained_agent: false
   # This is the subfolder name you want to load from (if any)
@@ -36,7 +36,7 @@ model_loading:
 
   # Optionally load just the actor weights (from pretrain_actor.py)
   load_actor_weights: false
-  actor_subfolder: "20250123_0632_pretrain_actor_frozen_observer"
+  actor_subfolder: "20250205_2012_pretrain_actor_cutoff_adsr"
 
 model_saving:
   base_dir: "../saved_models/end_to_end"
