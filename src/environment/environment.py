@@ -259,7 +259,7 @@ class Environment:
         #     action=action,
         #     factor=10.0
         # )
-        saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action, factor=1.0)
+        # saturate_penalty = saturation_penalty(synth_params=self.get_synth_params(), actions=action, factor=1.0)
         # similarity_score = euclidean_distance(self.current_params, self.target_params)  # aka parameter_distance
 
         is_done, bonus = self.check_if_done(similarity_score)  # usually pass similarity_score
@@ -267,7 +267,8 @@ class Environment:
         # reward = similarity_score ** 2 * 10 + parameter_distance - time_penalty - action_penalty - saturate_penalty + bonus
         # reward = 2 * parameter_distance + 2 * similarity_score - time_penalty - action_penalty - saturate_penalty + bonus
         # reward = parameter_distance - saturate_penalty + bonus
-        reward = similarity_score - saturate_penalty + bonus
+        # reward = similarity_score - saturate_penalty + bonus
+        reward = similarity_score + bonus
 
         return reward, is_done
 
@@ -280,7 +281,7 @@ class Environment:
             return True, 100 * (max_steps - self.step_count) / max_steps
 
         if self.step_count >= max_steps:
-            return True, 0  # -100
+            return True, -100  # 0
 
         return False, 0
 
